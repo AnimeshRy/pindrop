@@ -1,10 +1,15 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
+# Build artifacts
+/bin/
+/dist/
+*.exe
+*.out
+*.test
 
-# Virtual environments
-.venv
+# Coverage and profiling
+coverage.out
+*.prof
+
+# IDE and OS noise
+.DS_Store
+.idea/
+.vscode/
