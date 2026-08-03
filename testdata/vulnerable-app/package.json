@@ -1,0 +1,10 @@
+{
+  "name": "vulnerable-app",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Deliberately vulnerable fixture used to exercise pindrop scan. Not a real application.",
+  "dependencies": {
+    "cross-spawn": "7.0.3",
+    "lodash": "4.17.20"
+  }
+}

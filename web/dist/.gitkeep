@@ -1,0 +1,6 @@
+This file exists so that web/dist/ is never empty.
+
+`//go:embed all:dist` in ../embed.go fails to compile when the directory is
+missing, which would break `go build` on a fresh clone before anyone has run
+`pnpm build`. Vite copies everything in public/ into dist/ on every build, so
+committing it here means it survives `emptyOutDir: true` as well.

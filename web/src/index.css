@@ -1,0 +1,46 @@
+/* Tailwind 4 is CSS-first: this single import replaces the v3 @tailwind
+   directives, and there is no tailwind.config.js or PostCSS step. Theme values
+   are declared below with @theme rather than in a JS config. */
+@import 'tailwindcss';
+
+@theme {
+  /* Severity palette. Findings are ranked, so the colors must read as a scale
+     rather than as arbitrary categories. */
+  --color-severity-critical: oklch(0.55 0.22 25);
+  --color-severity-high: oklch(0.64 0.19 35);
+  --color-severity-medium: oklch(0.75 0.15 75);
+  --color-severity-low: oklch(0.82 0.12 100);
+  --color-severity-info: oklch(0.65 0.13 240);
+  --color-severity-unknown: oklch(0.65 0.02 260);
+}
+
+@layer base {
+  :root {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.15 0.01 260);
+    --muted: oklch(0.97 0.003 260);
+    --muted-foreground: oklch(0.52 0.014 260);
+    --border: oklch(0.92 0.006 260);
+    --card: oklch(1 0 0);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: oklch(0.16 0.007 260);
+      --foreground: oklch(0.96 0.003 260);
+      --muted: oklch(0.22 0.008 260);
+      --muted-foreground: oklch(0.68 0.012 260);
+      --border: oklch(0.28 0.009 260);
+      --card: oklch(0.19 0.008 260);
+    }
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
+    -webkit-font-smoothing: antialiased;
+  }
+}

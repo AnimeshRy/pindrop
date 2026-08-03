@@ -1,0 +1,67 @@
+{
+  // Clear GOROOT for gopls and every Go tool VS Code spawns.
+  //
+  // Why: an exported GOROOT in your shell profile (commonly
+  // `export GOROOT=/usr/local/go`) pins the toolchain to whatever is installed
+  // there. This module declares `go 1.26.0` with `toolchain go1.26.5`, so the
+  // go driver re-execs into 1.26.5 while GOROOT still points at the older
+  // install's stdlib. gopls then reads the wrong source tree and reports
+  // phantom errors such as:
+  //
+  //     wg.Go undefined (type sync.WaitGroup has no field or method Go)
+  //
+  // sync.WaitGroup.Go is real — it landed in Go 1.25.
+  //
+  // An empty value makes Go fall back to auto-detection, which correctly
+  // resolves the active toolchain. It is preferred over pinning an explicit
+  // path because the resolved toolchain lives in the module cache and would be
+  // removed by `go clean -modcache`.
+  //
+  // The Makefile applies the same fix for command-line builds via
+  // `GO := env -u GOROOT go`. The permanent fix is to upgrade /usr/local/go or
+  // drop the GOROOT export from your shell profile; see
+  // docs/development/setup.md.
+  "go.toolsEnvVars": {
+    "GOROOT": ""
+  },
+
+  "go.useLanguageServer": true,
+  "go.lintTool": "golangci-lint",
+  "go.lintFlags": ["--path-mode=abs"],
+  "go.formatTool": "custom",
+  "go.alternateTools": {
+    "customFormatter": "gofumpt"
+  },
+
+  "gopls": {
+    "formatting.gofumpt": true,
+    "ui.completion.usePlaceholders": true,
+    "ui.diagnostic.staticcheck": true
+  },
+
+  "[go]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
+
+  // The frontend is a nested pnpm project; point the JS tooling at it.
+  "eslint.workingDirectories": [{ "directory": "web", "changeProcessCWD": true }],
+  "prettier.configPath": "web/.prettierrc.json",
+
+  "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[typescriptreact]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[json]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+
+  "files.exclude": {
+    "**/node_modules": true,
+    "web/dist/assets": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "web/dist": true,
+    "**/pnpm-lock.yaml": true,
+    "web/src/routeTree.gen.ts": true
+  }
+}

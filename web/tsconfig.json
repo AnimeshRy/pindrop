@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+
+    // TypeScript 6 defaults `types` to [] rather than auto-discovering
+    // everything in node_modules/@types, so ambient packages must be listed.
+    "types": ["vite/client", "node"],
+
+    // No `baseUrl`: it was removed in TypeScript 7 and is already deprecated in
+    // 6. Path mappings resolve relative to this file, which is what we want.
+    "paths": { "@/*": ["./src/*"] },
+
+    "strict": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
+    "erasableSyntaxOnly": true
+  },
+  "include": ["src", "vite.config.ts", "eslint.config.js"],
+  "exclude": ["dist", "node_modules"]
+}

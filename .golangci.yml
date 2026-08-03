@@ -1,0 +1,83 @@
+# golangci-lint v2 configuration.
+#
+# The `version` key is mandatory in v2 and is the config schema version, not the
+# linter version. A v1 config will not load here; run `golangci-lint migrate` if
+# you find one.
+#
+# Pinned tool version lives in the Makefile (GOLANGCI_LINT_VERSION) so local and
+# CI runs cannot drift.
+version: "2"
+
+run:
+  # v2 disables the timeout by default; a bound keeps a wedged CI job from
+  # burning a full runner slot.
+  timeout: 5m
+
+linters:
+  enable:
+    # Minimum recommended set.
+    - errcheck
+    - govet
+    - revive
+    - staticcheck
+    # Production additions.
+    - bodyclose # HTTP response bodies must be closed
+    - errorlint # correct %w usage and errors.Is/As comparisons
+    - exhaustive # every Severity/Category switch handles every case
+    - gocyclo
+    - gosec # this is a security product; hold it to its own standard
+    - ineffassign
+    - misspell
+    - nilerr
+    - unconvert
+    - unparam
+
+  settings:
+    revive:
+      rules:
+        - name: exported
+    gocyclo:
+      min-complexity: 15
+    exhaustive:
+      # Our enums are string-typed, and a missing case is a real bug: an
+      # unhandled severity silently renders as blank.
+      default-signifies-exhaustive: true
+    gosec:
+      excludes:
+        # Subprocess execution with variable arguments is the entire point of a
+        # scanner adapter; the binary path is operator-controlled, not
+        # user-controlled.
+        - G204
+
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+    rules:
+      # Test files may hardcode credentials-shaped fixtures and skip some
+      # hardening checks.
+      - path: _test\.go
+        linters:
+          - gosec
+          - unparam
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+formatters:
+  enable:
+    - goimports
+    - gofumpt
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/AnimeshRy/pindrop
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

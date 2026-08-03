@@ -1,0 +1,144 @@
+{
+  "_comment": [
+    "Golden Trivy report used by convert_test.go so conversion tests run without",
+    "the Trivy binary installed.",
+    "",
+    "Captured from Trivy v0.72.0 (`trivy fs --scanners vuln,misconfig,secret,license",
+    "--format json`) and then trimmed. Field names are verbatim from real output:",
+    "misconfigurations carry ID (e.g. DS-0002) and no AVDID, and secret Match values",
+    "arrive already redacted by Trivy.",
+    "",
+    "The license entry is the exception - it is derived from Trivy's DetectedLicense",
+    "struct rather than captured, because the license scanner emitted an empty",
+    "license-file result for our fixtures. Re-verify it if license handling changes.",
+    "",
+    "Two entries are synthetic on purpose: CVE-2025-0001 exercises Trivy's documented",
+    "minimum field set, and the trailing go.mod result exercises a target with no",
+    "findings at all."
+  ],
+  "SchemaVersion": 2,
+  "Trivy": { "Version": "0.72.0" },
+  "ReportID": "019fc238-8f6c-7504-814d-fa984a885961",
+  "CreatedAt": "2026-08-02T12:00:00.000000000Z",
+  "ArtifactName": "testdata/vulnerable-app",
+  "ArtifactType": "filesystem",
+  "Results": [
+    {
+      "Target": "package-lock.json",
+      "Class": "lang-pkgs",
+      "Type": "npm",
+      "Vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2024-21538",
+          "PkgID": "cross-spawn@7.0.3",
+          "PkgName": "cross-spawn",
+          "PkgIdentifier": {
+            "PURL": "pkg:npm/cross-spawn@7.0.3",
+            "UID": "58fdec9fb4d146dd"
+          },
+          "InstalledVersion": "7.0.3",
+          "FixedVersion": "7.0.5",
+          "Status": "fixed",
+          "Severity": "HIGH",
+          "Title": "cross-spawn: regular expression denial of service",
+          "Description": "Versions of the package cross-spawn before 7.0.5 are vulnerable to ReDoS.",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2024-21538",
+          "References": [
+            "https://github.com/moxystudio/node-cross-spawn/commit/5ff3a07",
+            "https://avd.aquasec.com/nvd/cve-2024-21538"
+          ]
+        },
+        {
+          "VulnerabilityID": "CVE-2025-0001",
+          "PkgName": "left-pad",
+          "InstalledVersion": "1.0.0",
+          "Severity": "CRITICAL"
+        }
+      ]
+    },
+    {
+      "Target": "Dockerfile",
+      "Class": "config",
+      "Type": "dockerfile",
+      "MisconfSummary": { "Successes": 24, "Failures": 1 },
+      "Misconfigurations": [
+        {
+          "Type": "Dockerfile Security Check",
+          "ID": "DS-0002",
+          "Title": "Image user should not be 'root'",
+          "Description": "Running containers with 'root' user can lead to privilege escalation.",
+          "Message": "Specify at least 1 USER command in Dockerfile with non-root user as argument",
+          "Namespace": "builtin.dockerfile.DS002",
+          "Query": "data.builtin.dockerfile.DS002.deny",
+          "Resolution": "Add 'USER <non root user name>' line to the Dockerfile",
+          "Severity": "HIGH",
+          "PrimaryURL": "https://avd.aquasec.com/misconfig/ds-0002",
+          "References": ["https://avd.aquasec.com/misconfig/ds-0002"],
+          "Status": "FAIL",
+          "CauseMetadata": {
+            "Provider": "Dockerfile",
+            "Service": "general",
+            "StartLine": 1,
+            "EndLine": 1,
+            "Code": {
+              "Lines": [
+                {
+                  "Number": 1,
+                  "Content": "FROM node:18-alpine",
+                  "IsCause": true,
+                  "Truncated": false
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "Target": ".env",
+      "Class": "secret",
+      "Secrets": [
+        {
+          "RuleID": "github-pat",
+          "Category": "GitHub",
+          "Severity": "CRITICAL",
+          "Title": "GitHub Personal Access Token",
+          "StartLine": 6,
+          "EndLine": 6,
+          "Offset": 214,
+          "Match": "GITHUB_TOKEN=****************************************",
+          "Code": {
+            "Lines": [
+              {
+                "Number": 6,
+                "Content": "GITHUB_TOKEN=****************************************",
+                "IsCause": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "Target": "node_modules/some-pkg/LICENSE",
+      "Class": "license",
+      "Type": "npm",
+      "Licenses": [
+        {
+          "Severity": "MEDIUM",
+          "Category": "restricted",
+          "PkgName": "some-pkg",
+          "FilePath": "node_modules/some-pkg/LICENSE",
+          "Name": "GPL-3.0",
+          "Confidence": 1,
+          "Link": "https://spdx.org/licenses/GPL-3.0.html"
+        }
+      ]
+    },
+    {
+      "Target": "go.mod",
+      "Class": "lang-pkgs",
+      "Type": "gomod"
+    }
+  ]
+}
