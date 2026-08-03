@@ -14,6 +14,7 @@ next person re-walking the same path.
 | [0002](0002-trivy-subprocess.md) | Run Trivy as a subprocess, not a library | Accepted |
 | [0003](0003-embedded-spa.md) | Embed the SPA into the binary with `go:embed` | Accepted |
 | [0004](0004-typescript-6-pin.md) | Pin TypeScript to 6.x rather than 7.x | Accepted, temporary |
+| [0005](0005-mise-optional.md) | mise as an optional layer, not a build dependency | Accepted |
 
 ## Format
 

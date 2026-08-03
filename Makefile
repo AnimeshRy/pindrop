@@ -34,9 +34,20 @@ TRIVY_VERSION         := v0.72.0
 # older Go than we do. Forcing the toolchain makes the installed binary match.
 GO_TOOLCHAIN := go1.26.5
 
-GOLANGCI_LINT := $(BIN)/golangci-lint
-GOFUMPT       := $(BIN)/gofumpt
-TRIVY         := $(BIN)/trivy
+# Tool resolution: a mise-managed copy wins, otherwise ./bin gets a pinned one
+# installed on demand. mise is optional — every target works without it.
+#
+# `mise which` is used rather than `command -v` on purpose: it only reports
+# tools mise itself manages, so a system-wide golangci-lint v1 on PATH (which
+# cannot read our v2 config) is never picked up. The $(wildcard) guard keeps the
+# result empty until the binary actually exists, so make falls back to the ./bin
+# install rule instead of failing on a path with no rule to build it.
+MISE      := $(shell command -v mise 2>/dev/null)
+mise_tool = $(if $(MISE),$(wildcard $(shell $(MISE) which $(1) 2>/dev/null)))
+
+GOLANGCI_LINT := $(or $(call mise_tool,golangci-lint),$(BIN)/golangci-lint)
+GOFUMPT       := $(or $(call mise_tool,gofumpt),$(BIN)/gofumpt)
+TRIVY         := $(or $(call mise_tool,trivy),$(BIN)/trivy)
 
 PNPM := pnpm --dir web
 
@@ -63,25 +74,38 @@ trivy: $(TRIVY) ## Install the pinned Trivy release into ./bin
 
 # pindrop looks for trivy on PATH and then beside its own binary, so installing
 # here is enough — ./bin does not need to be on PATH.
-$(TRIVY):
+# Keyed on $(BIN)/... rather than the resolved variable: when mise provides the
+# tool, its path already exists and needs no rule.
+$(BIN)/trivy:
 	@mkdir -p $(BIN)
 	curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
 		| sh -s -- -b $(CURDIR)/$(BIN) $(TRIVY_VERSION)
-	@$(TRIVY) --version | head -1
+	@$(BIN)/trivy --version | head -1
 
-$(GOLANGCI_LINT):
+$(BIN)/golangci-lint:
 	@mkdir -p $(BIN)
 	GOTOOLCHAIN=$(GO_TOOLCHAIN) GOBIN=$(CURDIR)/$(BIN) \
 		$(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
-$(GOFUMPT):
+$(BIN)/gofumpt:
 	@mkdir -p $(BIN)
 	GOTOOLCHAIN=$(GO_TOOLCHAIN) GOBIN=$(CURDIR)/$(BIN) \
 		$(GO) install mvdan.cc/gofumpt@$(GOFUMPT_VERSION)
 
+.PHONY: mise
+mise: ## Install the optional mise-managed toolchain (see mise.toml)
+	@test -n "$(MISE)" \
+		|| { echo "mise is not installed. It is optional — 'make setup' works without it."; \
+		     echo "To use it: https://mise.jdx.dev/getting-started.html"; exit 1; }
+	$(MISE) install
+	@echo
+	@echo "Installed. Tool paths resolve at make startup, so re-run 'make setup' —"
+	@echo "it will now skip anything mise provides."
+
 .PHONY: web-install
 web-install: ## Install frontend dependencies
-	corepack enable pnpm
+	@# corepack would install a second pnpm shim over the mise-managed one.
+	$(if $(call mise_tool,pnpm),@echo "pnpm provided by mise; skipping corepack",corepack enable pnpm)
 	$(PNPM) install --frozen-lockfile
 
 ##@ Build

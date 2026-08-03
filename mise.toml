@@ -1,0 +1,40 @@
+# Optional developer toolchain (https://mise.jdx.dev).
+#
+# mise is a convenience, not a requirement: `make setup` installs everything
+# into ./bin without it, and CI uses setup-go/setup-node. See
+# docs/decisions/0005-mise-optional.md. What this file buys is one place to read
+# the versions that otherwise live in go.mod, web/package.json, the Makefile,
+# and .github/workflows/ci.yml.
+#
+# Usage:
+#   mise trust && mise install     # then `make setup` skips what mise provides
+
+[tools]
+# MUST stay byte-identical to the `toolchain` directive in go.mod. mise exports
+# GOROOT, and a GOROOT pointing at one toolchain while the go driver re-execs
+# into another produces `compile: version "goX" does not match go tool version
+# "goY"`. Equal versions mean no re-exec, so no mismatch. Never loosen this to
+# "1.26" or "latest".
+go = "1.26.5"
+
+# Floor set by pnpm 11, which is stricter than Vite 8's.
+node = "22.13"
+pnpm = "11.18.0"
+
+# Runtime dependency of `pindrop scan`. Pinned rather than tracking latest:
+# Trivy's release channel was compromised twice in 2026 and its report schema is
+# a contract we parse. Note this installs from mise's registry, not Trivy's own
+# install.sh — a different supply-chain path than `make trivy` uses.
+trivy = "0.72.0"
+
+# Built from source against the Go above, which sidesteps the published binary's
+# refusal to analyze a module whose `go` directive is newer than the Go it was
+# compiled with. A system-wide golangci-lint v1 cannot read our v2 config at
+# all, so the Makefile only accepts a copy mise reports as its own.
+"go:github.com/golangci/golangci-lint/v2/cmd/golangci-lint" = "v2.12.2"
+"go:mvdan.cc/gofumpt" = "v0.11.0"
+
+[settings.go]
+# Redundant with the Makefile's `env -u GOROOT go`, but it keeps the invariant
+# visible where the Go version is declared.
+set_goroot = false

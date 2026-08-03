@@ -17,6 +17,9 @@ env:
   GO_VERSION: "1.26.5"
   NODE_VERSION: "22"
   GOLANGCI_LINT_VERSION: "v2.12.2"
+  # Keep in step with mise.toml and the Makefile — see
+  # docs/decisions/0005-mise-optional.md.
+  TRIVY_VERSION: "v0.72.0"
 
 jobs:
   go:
@@ -110,7 +113,7 @@ jobs:
       - name: Install Trivy
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
-            | sh -s -- -b /usr/local/bin v0.72.0
+            | sh -s -- -b /usr/local/bin ${{ env.TRIVY_VERSION }}
           trivy --version
 
       - name: Build full binary

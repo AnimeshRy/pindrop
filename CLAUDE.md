@@ -43,7 +43,9 @@ make test      # go test -race ./...
 make run-scan  # scan the bundled fixture
 ```
 
-Always use `./bin/golangci-lint` — a system-wide v1 cannot read the v2 config.
+Never a golangci-lint from `PATH` — a system-wide v1 cannot read the v2 config.
+Use `./bin/golangci-lint`, or `mise which golangci-lint` if the developer uses
+mise; `make lint-go` already resolves whichever applies.
 
 ## Things that will bite you
 
@@ -77,6 +79,13 @@ compile on a fresh clone.
 
 **golangci-lint needs `GOTOOLCHAIN=go1.26.5` at install time** — the published
 build targets Go 1.25 and refuses a 1.26 module. The Makefile does this.
+
+**`mise.toml` is optional and must stay that way** ([ADR
+0005](docs/decisions/0005-mise-optional.md)). Every target works without mise,
+and CI does not use it. Its `go` version must stay byte-identical to `go.mod`'s
+`toolchain` directive — mise exports `GOROOT`, and a mismatch triggers the
+toolchain re-exec bug below. A version bump means updating `mise.toml`, the
+`Makefile`, and `ci.yml` together.
 
 **Never invoke a bare `go` in the Makefile — use `$(GO)`.** It expands to
 `env -u GOROOT go`. An exported `GOROOT` (common in shell profiles) breaks every

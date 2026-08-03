@@ -17,6 +17,29 @@ make build          # frontend build + Go binary → ./bin/pindrop
 ./bin/pindrop scan .
 ```
 
+## Optional: mise
+
+[`mise.toml`](../../mise.toml) declares every pinned version — Go, Node, pnpm,
+Trivy, golangci-lint, gofumpt — in one place. It is **optional**
+([ADR 0005](../decisions/0005-mise-optional.md)): the Makefile installs anything
+mise has not provided, and CI does not use it.
+
+```bash
+mise trust && mise install    # or: make mise
+make setup                    # now skips whatever mise provides
+```
+
+Three things to know:
+
+- Make resolves tool paths at startup, so a fresh `mise install` is only picked
+  up on the **next** `make` invocation.
+- Targets resolve tools with `mise which`, never `command -v`, so a system-wide
+  golangci-lint v1 on your PATH is ignored rather than used against our v2
+  config.
+- Keep `go` in `mise.toml` byte-identical to the `toolchain` directive in
+  `go.mod`. mise exports `GOROOT`; if the two disagree the go driver re-execs
+  into a different toolchain and hits the version-mismatch error below.
+
 `make setup` installs a pinned Trivy into `./bin`. **`./bin` does not need to be
 on your PATH** — pindrop looks for `trivy` on PATH first, then beside its own
 executable. To use a copy you already have, pass `--trivy-binary /path/to/trivy`.
@@ -29,6 +52,7 @@ twice in 2026, and its report schema is a contract we parse.
 ```
 make help          list everything
 make setup         install Go tools, Trivy, and frontend dependencies
+make mise          install the optional mise-managed toolchain
 make trivy         install just the pinned Trivy
 make build         frontend + binary (the full artifact)
 make build-go      Go binary only, reusing whatever is in web/dist
@@ -120,4 +144,4 @@ CI runs all of this, including the two above.
 | `no scan report at .pindrop/report.json` | Not an error — run a scan with `--out` first |
 | Slow first scan | Trivy downloading its vulnerability DB; pass `--cache-dir` to reuse it |
 | `trivy not found in PATH` | Run `make trivy`, or pass `--trivy-binary` |
-| `compile: version "goX" does not match go tool version "goY"` | An exported `GOROOT` in your shell profile. Remove it — modern Go detects its own. The Makefile already clears it. |
+| `compile: version "goX" does not match go tool version "goY"` | An exported `GOROOT` — from your shell profile, or from mise if its `go` version differs from `go.mod`'s `toolchain`. Remove it / align the versions. The Makefile already clears it. |
