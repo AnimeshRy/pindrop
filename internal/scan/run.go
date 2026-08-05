@@ -62,14 +62,53 @@ func Preflight(ctx context.Context, scanners []Scanner) error {
 	return errors.Join(errs...)
 }
 
-// Findings flattens results into a single slice sorted for presentation: most
-// severe first, then by path, then by line, then by rule. The ordering is total
-// and deterministic, so identical scans render identically.
+// Usable partitions scanners into those that can run and a joined error
+// describing those that cannot.
+//
+// This exists because "one of several scanners is not installed" is not the same
+// failure as "no scanner is installed". Pindrop's first run has to work with
+// nothing set up beyond a single tool, so an optional second scanner going
+// missing must degrade coverage rather than abort the scan. The caller decides
+// what to do with the skipped set — normally warn — and only an empty usable
+// slice is fatal.
+//
+// The returned scanners keep their original relative order.
+func Usable(ctx context.Context, scanners []Scanner) ([]Scanner, error) {
+	errs := make([]error, len(scanners))
+
+	var wg sync.WaitGroup
+	for i, s := range scanners {
+		wg.Go(func() {
+			errs[i] = s.Preflight(ctx)
+		})
+	}
+	wg.Wait()
+
+	usable := make([]Scanner, 0, len(scanners))
+	for i, s := range scanners {
+		if errs[i] == nil {
+			usable = append(usable, s)
+		}
+	}
+
+	return usable, errors.Join(errs...)
+}
+
+// Findings flattens results into a single slice, merges cross-tool duplicates,
+// and sorts for presentation: most severe first, then by path, then by line, then
+// by rule. The ordering is total and deterministic, so identical scans render
+// identically.
+//
+// Deduplication happens here rather than in the callers because a flat list of
+// every scanner's raw output is never the right thing to show a user — two tools
+// reporting one vulnerability is one issue. See [Dedup].
 func Findings(results []Result) []Finding {
 	var all []Finding
 	for _, r := range results {
 		all = append(all, r.Findings...)
 	}
+
+	all = Dedup(all)
 
 	sort.SliceStable(all, func(i, j int) bool {
 		a, b := all[i], all[j]

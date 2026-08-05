@@ -13,6 +13,7 @@ import (
 
 	"github.com/AnimeshRy/pindrop/internal/report"
 	"github.com/AnimeshRy/pindrop/internal/scan"
+	"github.com/AnimeshRy/pindrop/internal/scan/osv"
 	"github.com/AnimeshRy/pindrop/internal/scan/trivy"
 )
 
@@ -25,14 +26,16 @@ const defaultTableLimit = 25
 
 // scanOptions holds the flags for `pindrop scan`.
 type scanOptions struct {
-	format      string
-	out         string
-	scanners    []string
-	minSeverity string
-	limit       int
-	failOn      string
-	trivyBinary string
-	cacheDir    string
+	format       string
+	out          string
+	scanners     []string
+	minSeverity  string
+	limit        int
+	failOn       string
+	trivyBinary  string
+	osvBinary    string
+	cacheDir     string
+	callAnalysis bool
 }
 
 func newScanCommand(g *globals) *cobra.Command {
@@ -72,6 +75,10 @@ directory.`),
 		"exit non-zero if any finding is at or above this severity")
 	f.StringVar(&opts.trivyBinary, "trivy-binary", "trivy",
 		"path to the Trivy executable")
+	f.StringVar(&opts.osvBinary, "osv-binary", "osv-scanner",
+		"path to the OSV-Scanner executable")
+	f.BoolVar(&opts.callAnalysis, "call-analysis", false,
+		"enable OSV-Scanner reachability analysis (slower; compiles the target)")
 	f.StringVar(&opts.cacheDir, "cache-dir", "",
 		"directory for scanner caches, such as the vulnerability database")
 
@@ -98,19 +105,35 @@ func runScan(ctx context.Context, g *globals, opts *scanOptions, path string) er
 		return err
 	}
 
+	// The scanner registry. Adapters are wired here and nowhere else: internal/scan
+	// must not import them, or the dependency becomes a cycle.
 	scanners := []scan.Scanner{
 		trivy.New(
 			trivy.WithBinary(opts.trivyBinary),
 			trivy.WithScanners(opts.scanners...),
 			trivy.WithCacheDir(opts.cacheDir),
 		),
+		osv.New(
+			osv.WithBinary(opts.osvBinary),
+			osv.WithCallAnalysis(opts.callAnalysis),
+		),
 	}
 
-	// Preflight before scanning so a missing tool is reported as setup
-	// guidance rather than as a mid-scan failure.
-	if err := scan.Preflight(ctx, scanners); err != nil {
-		return err
+	// Preflight before scanning so a missing tool is reported as setup guidance
+	// rather than as a mid-scan failure.
+	//
+	// A missing optional scanner reduces coverage; it does not abort the scan.
+	// Requiring every tool to be installed would break `pindrop scan .` on a
+	// machine that has only Trivy, which is the zero-setup first run the product
+	// depends on. Only having nothing left to run is fatal.
+	usable, unavailable := scan.Usable(ctx, scanners)
+	if len(usable) == 0 {
+		return unavailable
 	}
+	if unavailable != nil {
+		fmt.Fprintf(os.Stderr, "Skipping unavailable scanners:\n%s\n\n", indentLines(unavailable.Error()))
+	}
+	scanners = usable
 
 	slog.Debug("starting scan", "path", target.Path, "scanners", len(scanners))
 
@@ -178,6 +201,17 @@ func writeReport(results []scan.Result, format report.Format, opts *scanOptions,
 
 	fmt.Fprintf(os.Stderr, "wrote %s report to %s\n", format, opts.out)
 	return nil
+}
+
+// indentLines indents every line of s by two spaces, so a multi-scanner
+// unavailability report reads as a list under its heading rather than running
+// flush against the left margin.
+func indentLines(s string) string {
+	lines := strings.Split(strings.TrimRight(s, "\n"), "\n")
+	for i, line := range lines {
+		lines[i] = "  " + line
+	}
+	return strings.Join(lines, "\n")
 }
 
 // resolveTarget validates the scan path and makes it absolute.

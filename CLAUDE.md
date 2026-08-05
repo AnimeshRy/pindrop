@@ -17,9 +17,16 @@ Full context: [docs/product/vision.md](docs/product/vision.md).
 
 ## Current state — Phase 0 complete
 
-`pindrop scan` (Trivy only) and `pindrop serve` (embedded React dashboard).
+`pindrop scan` (Trivy and OSV-Scanner) and `pindrop serve` (embedded React
+dashboard).
 **Nothing is persisted yet** — fingerprints are computed and displayed but not
 compared across runs. Cross-scan diffing and triage are Phase 1.
+
+Cross-tool identity and dedup (`scan.Dedup`, `canonical.go`,
+[ADR 0006](docs/decisions/0006-canonical-identity-before-dedup.md)) landed early,
+because they change fingerprints and must precede persistence. Adding OSV-Scanner
+then cost nothing in noise: 14 raw findings on the fixture merge to the same 8
+Trivy alone reported, four of them now corroborated by both tools.
 
 Next: [docs/product/roadmap.md](docs/product/roadmap.md).
 
@@ -58,12 +65,32 @@ above it, and would stop two tools' reports of one problem from merging.
 Changing `scan.Fingerprint` orphans every stored triage decision — treat it as a
 data migration.
 
+**Excluding the scanner name is not enough to merge two tools.** They also
+disagree on advisory IDs (`CVE-2025-22870` vs `GO-2025-3503`), ecosystem names
+(`gomod` vs `Go`), and version strings (`v0.35.0` vs `0.35.0`). `canonical.go`
+normalizes all three before hashing. **New adapters must populate
+`Finding.Aliases`** — omitting it fails no test and silently stops merging.
+Canonicalization must never depend on which scanners ran, or enabling one rewrites
+existing findings' identity.
+
+**Cloud and cluster findings have no file path.** A security group or IRSA role is
+identified by resource ARN plus check ID, and keying on an ephemeral resource
+would report everything as fixed-and-reintroduced on each node rotation. Resource
+identity must be designed before Phase 1 persists anything.
+
 **Golden fixtures come from real tool output, never from documentation.** The
 Trivy adapter shipped reading an `AVDID` field that v0.72.0 does not emit,
 because the fixture was written from docs. Capture, then trim.
 
 **`--exit-code 0` on every Trivy invocation.** Without it, "the tool crashed"
 and "the code has vulnerabilities" are the same exit code.
+
+**A missing scanner binary must not fail the scan.** `scan.Usable` drops
+unavailable scanners and the CLI warns; only an empty usable set is fatal.
+Requiring every tool to be installed breaks the zero-setup first run. Relatedly,
+not every tool has Trivy's `--exit-code 0`: OSV-Scanner signals findings *through*
+its exit code, so `osv.resultExit` classifies them (0 and 1–126 fine, 128 means no
+manifests, 127 and 129+ are failures).
 
 **Adapters must filter, not just forward.** Trivy's license scanner classifies
 every license it finds; forwarding all of them produced 24 MIT/Apache entries
@@ -88,9 +115,14 @@ toolchain re-exec bug below. A version bump means updating `mise.toml`, the
 `Makefile`, and `ci.yml` together.
 
 **Never invoke a bare `go` in the Makefile — use `$(GO)`.** It expands to
-`env -u GOROOT go`. An exported `GOROOT` (common in shell profiles) breaks every
+`$(NO_GOROOT) go`. An exported `GOROOT` (common in shell profiles) breaks every
 build once `GOTOOLCHAIN` switches toolchains: the driver re-execs into the new
 toolchain while `GOROOT` still points at the old install's stdlib.
+
+This applies to **every Go-aware tool, not just the driver** — prefix
+`$(NO_GOROOT)`. golangci-lint reads `GOROOT` too and fails identically, but
+reports the mismatch against an unrelated import (`could not import errors`),
+which sends you looking in the wrong place.
 
 **TypeScript is pinned to 6.x deliberately**
 ([ADR 0004](docs/decisions/0004-typescript-6-pin.md)) — `typescript-eslint`

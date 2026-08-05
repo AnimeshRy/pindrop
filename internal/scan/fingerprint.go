@@ -69,20 +69,25 @@ func Fingerprint(f Finding) string {
 // The manifest path is included so that the same vulnerable package pinned at
 // the same version in two different services of a monorepo remains two issues:
 // they are owned by different teams and fixed by different pull requests.
+// The rule ID and package coordinates are canonicalized first, because the whole
+// point of excluding the scanner name is defeated if two tools spell the same
+// advisory or the same ecosystem differently. See [CanonicalAdvisoryID].
 func dependencyIdentity(f Finding) []string {
 	parts := []string{
 		"pkg",
-		strings.TrimSpace(f.RuleID),
+		CanonicalAdvisoryID(f.RuleID, f.Aliases),
 		normalizePath(f.Location.Path),
 	}
 
 	if f.Package == nil {
 		return parts
 	}
+
+	ecosystem := CanonicalEcosystem(f.Package.Ecosystem)
 	return append(parts,
-		strings.ToLower(strings.TrimSpace(f.Package.Ecosystem)),
+		ecosystem,
 		strings.TrimSpace(f.Package.Name),
-		strings.TrimSpace(f.Package.Version),
+		CanonicalVersion(ecosystem, f.Package.Version),
 	)
 }
 

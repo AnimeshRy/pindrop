@@ -15,7 +15,14 @@ SHELL := /bin/bash
 # points at the older install's precompiled stdlib, producing
 # `compile: version "goX" does not match go tool version "goY"`. Modern Go
 # detects its own GOROOT, so clearing it is always correct here.
-GO := env -u GOROOT go
+#
+# This applies to anything that resolves the stdlib through go/packages, not just
+# the driver: golangci-lint's typecheck reads GOROOT too and fails identically,
+# except that it reports the mismatch against an unrelated import (`could not
+# import errors`), which sends you looking in the wrong place. Prefix every
+# Go-aware tool with $(NO_GOROOT); never invoke one bare.
+NO_GOROOT := env -u GOROOT
+GO        := $(NO_GOROOT) go
 
 BIN          := bin
 BINARY       := $(BIN)/pindrop
@@ -28,6 +35,7 @@ GOFUMPT_VERSION       := v0.11.0
 # Pinned rather than tracking latest: Trivy's release channel was compromised
 # twice in 2026, and its report schema is a contract we parse.
 TRIVY_VERSION         := v0.72.0
+OSV_SCANNER_VERSION   := v2.4.0
 
 # golangci-lint refuses to analyze a module whose `go` directive is newer than
 # the Go release it was itself built with, and its published module targets an
@@ -45,9 +53,12 @@ GO_TOOLCHAIN := go1.26.5
 MISE      := $(shell command -v mise 2>/dev/null)
 mise_tool = $(if $(MISE),$(wildcard $(shell $(MISE) which $(1) 2>/dev/null)))
 
+# These hold bare paths, because they are also used as target prerequisites.
+# Prefix $(NO_GOROOT) when running them — see the note above.
 GOLANGCI_LINT := $(or $(call mise_tool,golangci-lint),$(BIN)/golangci-lint)
 GOFUMPT       := $(or $(call mise_tool,gofumpt),$(BIN)/gofumpt)
 TRIVY         := $(or $(call mise_tool,trivy),$(BIN)/trivy)
+OSV_SCANNER   := $(or $(call mise_tool,osv-scanner),$(BIN)/osv-scanner)
 
 PNPM := pnpm --dir web
 
@@ -62,7 +73,7 @@ help: ## Show this help
 ##@ Setup
 
 .PHONY: setup
-setup: tools trivy web-install ## Install everything needed to build and run
+setup: tools trivy osv-scanner web-install ## Install everything needed to build and run
 	@echo
 	@echo "Setup complete. Try: ./bin/pindrop scan ."
 
@@ -71,6 +82,9 @@ tools: $(GOLANGCI_LINT) $(GOFUMPT) ## Install pinned Go tools into ./bin
 
 .PHONY: trivy
 trivy: $(TRIVY) ## Install the pinned Trivy release into ./bin
+
+.PHONY: osv-scanner
+osv-scanner: $(OSV_SCANNER) ## Install the pinned OSV-Scanner release into ./bin
 
 # pindrop looks for trivy on PATH and then beside its own binary, so installing
 # here is enough — ./bin does not need to be on PATH.
@@ -91,6 +105,14 @@ $(BIN)/gofumpt:
 	@mkdir -p $(BIN)
 	GOTOOLCHAIN=$(GO_TOOLCHAIN) GOBIN=$(CURDIR)/$(BIN) \
 		$(GO) install mvdan.cc/gofumpt@$(GOFUMPT_VERSION)
+
+# Installed via `go install` rather than the release tarball: it is a Go program,
+# so this needs no extra download path, and the version is pinned either way.
+$(BIN)/osv-scanner:
+	@mkdir -p $(BIN)
+	GOTOOLCHAIN=$(GO_TOOLCHAIN) GOBIN=$(CURDIR)/$(BIN) \
+		$(GO) install github.com/google/osv-scanner/v2/cmd/osv-scanner@$(OSV_SCANNER_VERSION)
+	@$(BIN)/osv-scanner --version | head -1
 
 .PHONY: mise
 mise: ## Install the optional mise-managed toolchain (see mise.toml)
@@ -145,7 +167,7 @@ lint: lint-go lint-web ## Run all linters
 
 .PHONY: lint-go
 lint-go: $(GOLANGCI_LINT) ## Lint Go code
-	$(GOLANGCI_LINT) run ./...
+	$(NO_GOROOT) $(GOLANGCI_LINT) run ./...
 
 .PHONY: lint-web
 lint-web: ## Lint and typecheck the frontend
@@ -154,7 +176,7 @@ lint-web: ## Lint and typecheck the frontend
 
 .PHONY: fmt
 fmt: $(GOLANGCI_LINT) ## Format Go and frontend code
-	$(GOLANGCI_LINT) fmt ./...
+	$(NO_GOROOT) $(GOLANGCI_LINT) fmt ./...
 	$(PNPM) format
 
 .PHONY: verify
