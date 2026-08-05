@@ -1,0 +1,107 @@
+testdata/vulnerable-app/README.md
+  s_100bf9478bcedd::t_14655d46d3b606 11,17-38,40-45
+  s_100bf9478bcedd::t_f38ce123f5ce35 39
+internal/scan/opengrep/rules/javascript-eval-user-input.yaml
+  s_100bf9478bcedd::t_f537feb10936e0 1-37
+docs/decisions/README.md
+  s_100bf9478bcedd::t_6eed1bbb37fd67 19
+docs/decisions/0007-first-party-opengrep-rules.md
+  s_100bf9478bcedd::t_7737444771c43f 1-104
+internal/scan/opengrep/report.go
+  s_100bf9478bcedd::t_797d5acf77cfff 1-93
+docs/architecture/scanners.md
+  s_100bf9478bcedd::t_59b9ce69d6bd16 104-133
+  s_100bf9478bcedd::t_fd21a9eceec754 91
+  s_100bf9478bcedd::t_cbbb8181a696c0 168-208
+  s_100bf9478bcedd::t_2b7c8a970d4a3c 274-280
+  s_100bf9478bcedd::t_3b3679728dbe0a 320-343
+  s_100bf9478bcedd::t_c6e75cca63eabf 78-82
+  s_100bf9478bcedd::t_ecd821c428a20e 253-255
+internal/scan/opengrep/rules/python-flask-debug-enabled.yaml
+  s_100bf9478bcedd::t_fbe223450cafbc 1-25
+internal/scan/opengrep/rules/python-sql-string-formatting.yaml
+  s_100bf9478bcedd::t_00bf258071e82b 1-29
+testdata/vulnerable-app/src/routes.js
+  s_100bf9478bcedd::t_a58abe5bfb1ed6 1-55
+testdata/vulnerable-app/src/report.py
+  s_100bf9478bcedd::t_cd538a884a0e30 1-61
+internal/scan/opengrep/testdata/report.json
+  s_100bf9478bcedd::t_6bed5f9cb321f5 1-569
+internal/scan/opengrep/rules/go-command-injection.yaml
+  s_100bf9478bcedd::t_d3f1d4cbab64a0 1-34
+internal/cli/scan.go
+  s_100bf9478bcedd::t_d205ab7a34391c 127-130
+  s_100bf9478bcedd::t_f2ed9ccc5858cd 30-41
+  s_100bf9478bcedd::t_611267cc93f76d 83-86
+  s_100bf9478bcedd::t_60367fc1e8524f 16
+Makefile
+  s_100bf9478bcedd::t_5dd599d596a726 78
+  s_100bf9478bcedd::t_fc9de33c953ddd 122-143
+  s_100bf9478bcedd::t_079f8fe0bc4643 63
+  s_100bf9478bcedd::t_355f4a314f95ef 91-93
+  s_100bf9478bcedd::t_dd1bb2b4c844e1 39
+internal/scan/opengrep/rules/python-yaml-unsafe-load.yaml
+  s_100bf9478bcedd::t_2865b66eb6375d 1-30
+internal/scan/opengrep/rules/README.md
+  s_100bf9478bcedd::t_0986ba2dfe98ac 1-63
+testdata/vulnerable-app/src/admin.go
+  s_100bf9478bcedd::t_ac751e86ad7cf9 1-56
+internal/scan/opengrep/rules/javascript-jwt-algorithm-none.yaml
+  s_100bf9478bcedd::t_3836dff4d98b23 22-24,27-29
+  s_100bf9478bcedd::t_202dc2bef4b50b 1-21,25-26
+CLAUDE.md
+  s_100bf9478bcedd::t_2f3852fee7c6ee 20-21
+  s_100bf9478bcedd::t_7d82538a6d8c06 31-38
+  s_100bf9478bcedd::t_2b1bc9833e26ed 103-114
+internal/scan/opengrep/opengrep_test.go
+  s_100bf9478bcedd::t_f7e30c5d79c562 1-201
+internal/scan/opengrep/rules/javascript-command-injection.yaml
+  s_100bf9478bcedd::t_00e3dc00670689 1-39
+internal/scan/opengrep/opengrep.go
+  s_100bf9478bcedd::t_84198d8040c1b7 1-382
+docs/development/setup.md
+  s_100bf9478bcedd::t_c16a1ad50fb21d 49-55,57-65
+  s_100bf9478bcedd::t_0610d2a28ee86f 10-16,21
+  s_100bf9478bcedd::t_697800f18c7381 141,144-145,153-164,167
+  s_100bf9478bcedd::t_ec22bbe119d359 178,180-181
+  s_100bf9478bcedd::t_c1c79fd2eaf431 71,74-75
+internal/scan/opengrep/rules/python-subprocess-shell-true.yaml
+  s_100bf9478bcedd::t_fc9d0998a1928f 1-33
+internal/scan/opengrep/rules/javascript-sql-injection.yaml
+  s_100bf9478bcedd::t_4a982c08c46743 1-42
+README.md
+  s_100bf9478bcedd::t_f44693345c9145 69-72,75-76
+  s_100bf9478bcedd::t_09ae42532439b4 77
+internal/scan/opengrep/convert_test.go
+  s_100bf9478bcedd::t_043a1296f04ef4 1-522
+internal/scan/opengrep/rules/go-sql-sprintf.yaml
+  s_100bf9478bcedd::t_f66ced2b1604ac 1-29
+.github/workflows/ci.yml
+  s_100bf9478bcedd::t_61599687f47db6 150-156,158-161,164-178
+docs/product/roadmap.md
+  s_100bf9478bcedd::t_6ee390fdbfc71e 64-76
+  s_100bf9478bcedd::t_940267939bf575 87-89
+internal/scan/opengrep/convert.go
+  s_100bf9478bcedd::t_c6550c8dff8510 1-238
+internal/scan/opengrep/rules.go
+  s_100bf9478bcedd::t_42d8f2747f519f 1-84
+docs/architecture/repo-layout.md
+  s_100bf9478bcedd::t_e43f26f32f1895 9-11
+  s_100bf9478bcedd::t_496eb231d8fb4c 24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "e71063d8fb78985a62da6564c93040918a611a9d",
+  "prompts": {},
+  "sessions": {
+    "s_100bf9478bcedd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "aa390b2b-10ff-4a2f-ae77-3681a668dd20",
+        "model": "claude-opus-5"
+      },
+      "human_author": "AnimeshRy <ani16september@gmail.com>"
+    }
+  }
+}
