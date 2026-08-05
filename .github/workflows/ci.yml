@@ -147,9 +147,32 @@ jobs:
           # Deep links must return the SPA shell, not a 404.
           test "$(curl -s -o /dev/null -w '%{http_code}' localhost:7777/deep/link)" = "200"
 
-      - name: Missing Trivy must fail with actionable guidance
+      # Every scanner is named explicitly rather than relying on Trivy being the
+      # only one this job installs. The looser form of this test passed only
+      # because nothing else happened to be present, so each adapter added made
+      # it more misleading: with one scanner still usable the scan correctly
+      # succeeds, and the assertion would have started testing the environment
+      # instead of the behavior.
+      - name: No usable scanner must fail with actionable guidance
         run: |
-          if ./bin/pindrop scan ./testdata/vulnerable-app --trivy-binary definitely-not-installed 2>/tmp/err; then
+          if ./bin/pindrop scan ./testdata/vulnerable-app \
+               --trivy-binary definitely-not-installed \
+               --osv-binary definitely-not-installed \
+               --opengrep-binary definitely-not-installed 2>/tmp/err; then
             echo "expected a non-zero exit"; exit 1
           fi
-          grep -q "Install Trivy" /tmp/err || { echo "missing install hint:"; cat /tmp/err; exit 1; }
+          for hint in "Install Trivy" "Install OSV-Scanner" "Install Opengrep"; do
+            grep -q "$hint" /tmp/err || { echo "missing install hint: $hint"; cat /tmp/err; exit 1; }
+          done
+
+      # The other half of the contract, and the one that keeps the zero-setup
+      # first run working: one absent optional tool reduces coverage, it does not
+      # abort the scan. Trivy is the scanner this job installs, so it is the one
+      # left usable.
+      - name: One missing scanner must warn and keep going
+        run: |
+          ./bin/pindrop scan ./testdata/vulnerable-app \
+            --osv-binary definitely-not-installed \
+            --opengrep-binary definitely-not-installed >/dev/null 2>/tmp/warn
+          grep -q "Skipping unavailable scanners" /tmp/warn \
+            || { echo "expected a skip warning:"; cat /tmp/warn; exit 1; }

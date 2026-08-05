@@ -1,0 +1,34 @@
+rules:
+  - id: go-exec-command-from-request
+    mode: taint
+    languages: [go]
+    severity: ERROR
+    message: >-
+      A value read from the HTTP request reaches os/exec. If it lands in the
+      command name, an attacker chooses the binary; if the command is run through
+      a shell, they chain a second one. Validate against an allow-list, and pass
+      arguments as separate parameters rather than through sh -c.
+    metadata:
+      category: security
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      technology: [go, net/http]
+      cwe:
+        - "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+      owasp:
+        - "A03:2021 - Injection"
+      references:
+        - https://cwe.mitre.org/data/definitions/78.html
+        - https://pkg.go.dev/os/exec
+    pattern-sources:
+      - pattern-either:
+          - pattern: $R.FormValue(...)
+          - pattern: $R.PostFormValue(...)
+          - pattern: $R.URL.Query().Get(...)
+          - pattern: $R.Header.Get(...)
+          - pattern: $R.PathValue(...)
+    pattern-sinks:
+      - pattern-either:
+          - pattern: exec.Command(...)
+          - pattern: exec.CommandContext(...)

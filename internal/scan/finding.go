@@ -141,9 +141,29 @@ type Finding struct {
 	// reporting the same problem collapse into one issue.
 	Scanner string `json:"scanner"`
 
+	// Scanners lists every adapter that reported this finding, sorted and
+	// deduplicated. [Dedup] always populates it, even for a finding only one
+	// tool reported; adapters never do, so it is nil until findings are merged.
+	//
+	// Its length is the confidence signal the vision doc calls for: two
+	// independent tools agreeing on a finding is stronger evidence than one
+	// asserting it. Use [Finding.Agreement] rather than len, so unmerged
+	// findings read as 1 instead of 0.
+	Scanners []string `json:"scanners,omitempty"`
+
 	// RuleID is the tool's identifier for the check that fired: a CVE ID, a
 	// Semgrep check ID, a Gitleaks rule name.
 	RuleID string `json:"ruleId"`
+
+	// Aliases are other identifiers for the same advisory — typically the CVE
+	// for a GHSA-primary record, or vice versa. Adapters should populate this
+	// whenever their tool provides it, because it is what lets two scanners
+	// using different identifier namespaces agree on one fingerprint.
+	//
+	// It is an input to identity via [CanonicalAdvisoryID], not a descriptive
+	// field, so adding an alias a scanner did not previously report can change
+	// a fingerprint.
+	Aliases []string `json:"aliases,omitempty"`
 
 	// Classification:
 

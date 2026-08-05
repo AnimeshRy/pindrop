@@ -6,7 +6,9 @@ pindrop/
 ├── internal/
 │   ├── cli/              cobra commands — the composition root
 │   ├── scan/             DOMAIN CORE: Finding, Scanner, Fingerprint
-│   │   └── trivy/        Trivy adapter (subprocess)
+│   │   ├── trivy/        Trivy adapter (subprocess)
+│   │   ├── osv/          OSV-Scanner adapter (subprocess)
+│   │   └── opengrep/     Opengrep adapter (subprocess) + rules/, go:embed'd
 │   ├── report/           renderers: table, json, sarif
 │   ├── httpapi/          serve: SPA + read-only JSON API
 │   └── buildinfo/        version identity
@@ -19,7 +21,7 @@ pindrop/
 
 ```
 cmd/pindrop
-    └── internal/cli ──────────┬── internal/scan ◄── internal/scan/trivy
+    └── internal/cli ──────────┬── internal/scan ◄── internal/scan/{trivy,osv,opengrep}
                                ├── internal/report ──┘
                                ├── internal/httpapi
                                └── web (embed)

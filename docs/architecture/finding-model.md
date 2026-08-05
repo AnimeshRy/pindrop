@@ -25,7 +25,9 @@ can be deduplicated across tools, and every new scanner means new UI.
 type Finding struct {
     Fingerprint string      // derived identity — see below
     Scanner     string      // "trivy" — provenance only
+    Scanners    []string    // every tool that reported it; set by Dedup
     RuleID      string      // "CVE-2024-21538", "DS-0002", "github-pat"
+    Aliases     []string    // other IDs for the same advisory — affects identity
     Category    Category    // vulnerability|secret|misconfiguration|code|license
     Severity    Severity    // unknown|info|low|medium|high|critical
     Title       string
@@ -36,6 +38,10 @@ type Finding struct {
     References  []string
 }
 ```
+
+`Aliases` is not descriptive — it feeds [`CanonicalAdvisoryID`](#canonicalization)
+and therefore the fingerprint. `Scanners` is: `len(Scanners)`, read via
+`Agreement()`, is the confidence signal for two tools independently agreeing.
 
 `Severity` and `Category` are string-typed rather than integer enums so JSON
 output stays readable and stable across releases. `Severity.Rank()` supplies
@@ -57,14 +63,63 @@ Everything below exists to make that true.
 
 - **Line numbers.** Insertions above a finding must not change its identity.
 - **The scanner name.** Gitleaks and TruffleHog finding the same key, or Trivy
-  and Grype reporting the same CVE, must collapse into one issue. Agreement
+  and OSV-Scanner reporting the same CVE, must collapse into one issue. Agreement
   between tools becomes a confidence signal rather than a duplicate.
+
+### Canonicalization
+
+Excluding the scanner name removes one obstacle to merging and leaves three in
+place. Trivy and OSV-Scanner describe one Go vulnerability like this:
+
+| | Trivy | OSV-Scanner |
+|---|---|---|
+| Advisory ID | `CVE-2025-22870` | `GO-2025-3503` (CVE in `aliases`) |
+| Ecosystem | `gomod` | `Go` |
+| Version | `v0.35.0` | `0.35.0` |
+
+Each difference would produce a separate fingerprint, so `canonical.go` normalizes
+all three before hashing:
+
+- **`CanonicalAdvisoryID`** prefers a CVE whenever one is available — the only
+  namespace every advisory database cross-references. Otherwise the reported ID
+  stands.
+- **`CanonicalEcosystem`** maps scanner vocabularies onto Package URL types.
+  Unknown values pass through lowercased, so an unmapped ecosystem degrades to
+  "does not merge", never to "merges wrongly".
+- **`CanonicalVersion`** strips Go's `v` prefix, and nothing else. Comparing
+  versions properly needs per-ecosystem semantics, and getting that wrong merges
+  unrelated versions — worse than a duplicate.
+
+**Canonicalization depends only on a single finding's own fields, never on the
+rest of the scan.** Clustering aliases across findings would merge more, but the
+chosen identity would then shift when the scanner set changed, orphaning triage
+decisions. See [ADR 0006](../decisions/0006-canonical-identity-before-dedup.md).
+
+Location-scoped findings keep their raw rule ID. Two SAST engines' identifiers for
+"SQL injection" share no namespace to canonicalize onto, so cross-tool SAST dedup
+remains unsolved and deliberately so.
+
+### Deduplication
+
+`scan.Dedup` groups findings by fingerprint and merges each group; `scan.Findings`
+calls it, because a flat list of every scanner's raw output is never what a user
+should see.
+
+Because canonicalization happens before hashing, duplicates arrive already sharing
+an identity. Merging is grouping, not similarity matching — no threshold to tune,
+no near-miss category, no false merges. Where tools disagree the higher severity
+and the more specific location win, and aliases and references are unioned. Every
+rule is order-independent, so output is identical regardless of which scanner
+finishes first — required, since these values get persisted and diffed.
+
+A finding with an empty fingerprint passes through untouched rather than joining a
+group, so an adapter bug surfaces as duplicate rows instead of being hidden.
 
 ### Identity differs by category
 
 | Category | Inputs |
 |---|---|
-| `vulnerability`, `license` | rule ID + package name + version + ecosystem + manifest path |
+| `vulnerability`, `license` | canonical advisory ID + package name + canonical version + canonical ecosystem + manifest path |
 | `secret`, `misconfiguration`, `code` | rule ID + file path + normalized snippet |
 
 Dependency findings ignore the line entirely — the same CVE in the same package

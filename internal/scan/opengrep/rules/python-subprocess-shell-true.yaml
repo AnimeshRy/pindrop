@@ -1,0 +1,33 @@
+rules:
+  - id: py-subprocess-shell-true
+    languages: [python]
+    severity: ERROR
+    message: >-
+      subprocess is invoked with shell=True and a command that is not a literal,
+      so any shell metacharacter in the interpolated value runs as a second
+      command. Drop shell=True and pass the command as a list of arguments.
+    metadata:
+      category: security
+      confidence: HIGH
+      likelihood: MEDIUM
+      impact: HIGH
+      technology: [python]
+      cwe:
+        - "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+      owasp:
+        - "A03:2021 - Injection"
+      references:
+        - https://cwe.mitre.org/data/definitions/78.html
+        - https://docs.python.org/3/library/subprocess.html#security-considerations
+    patterns:
+      - pattern-either:
+          - pattern: subprocess.$F(..., shell=True, ...)
+          - pattern: subprocess.$F(..., shell=$TRUTHY, ...)
+      - metavariable-regex:
+          metavariable: $F
+          regex: ^(run|call|check_call|check_output|Popen)$
+      # A fully literal command line cannot be influenced by an attacker, and
+      # flagging `subprocess.run("ls -la", shell=True)` is the noise that makes a
+      # SAST adapter unusable.
+      - pattern-not: subprocess.$F("...", ...)
+      - pattern-not: subprocess.$F([...], ...)

@@ -1,0 +1,569 @@
+{
+  "_comment": [
+    "Captured from a real Opengrep run; do not hand-write this file. Trivy shipped",
+    "reading a field its documentation described and the tool does not emit, so",
+    "adapter fixtures are captured and then trimmed, never transcribed.",
+    "",
+    "Tool: opengrep 1.26.0 (single-file release asset opengrep_osx_arm64).",
+    "",
+    "Command:",
+    "  opengrep scan --json --disable-version-check --no-rewrite-rule-ids \\",
+    "    --no-git-ignore --config internal/scan/opengrep/rules \\",
+    "    $PWD/testdata/vulnerable-app",
+    "",
+    "CAPTURED: everything below except the three entries noted as DERIVED.",
+    "Absolute paths were rewritten from this checkout to /home/dev/pindrop so the",
+    "fixture is stable across machines; the adapter relativizes them against the",
+    "scan root anyway.",
+    "",
+    "TRIMMED from each result.extra: metavars, dataflow_trace (present on every",
+    "taint-mode match and large), engine_kind, validation_state. Trimmed from the",
+    "top level: skipped_rules, interfile_languages_used (both empty here).",
+    "Retained deliberately: extra.lines, extra.fingerprint. Upstream Semgrep gates",
+    "those behind a login and its schema says so; Opengrep emits them",
+    "unconditionally, and extra.lines is what keeps two hits of one rule in one",
+    "file from merging.",
+    "",
+    "DERIVED: the last three results are hand-written to exercise the actionable()",
+    "filter, which the fixture cannot otherwise reach because the bundled ruleset",
+    "is curated. They are, in order: a match suppressed by a noopengrep comment",
+    "(is_ignored), a rule with severity INVENTORY, and a rule declaring",
+    "confidence LOW. All three must be dropped by convert()."
+  ],
+  "errors": [],
+  "paths": {
+    "scanned": [
+      "/home/dev/pindrop/testdata/vulnerable-app/src/admin.go",
+      "/home/dev/pindrop/testdata/vulnerable-app/src/report.py",
+      "/home/dev/pindrop/testdata/vulnerable-app/src/routes.js"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "go-sql-query-from-sprintf",
+      "end": {
+        "col": 96,
+        "line": 22,
+        "offset": 804
+      },
+      "extra": {
+        "fingerprint": "9a3ecf7c48172064eedf46a9ac1f4fdfc5e5e91883fc51e99ffd1141aa37fba4f5af72db5776ba1fd5b709da70a2a96efe2cab52ac6706c228caad540eec3cb0_0",
+        "is_ignored": false,
+        "lines": "\t\trows, err := db.Query(fmt.Sprintf(\"SELECT id, email FROM users WHERE tenant = '%s'\", tenant))",
+        "message": "A SQL statement is assembled with fmt.Sprintf. database/sql supports placeholders — db.Query(\"... WHERE id = $1\", id) — which send the value as data and cannot change the statement's structure.",
+        "metadata": {
+          "category": "security",
+          "confidence": "HIGH",
+          "cwe": [
+            "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+          ],
+          "impact": "HIGH",
+          "likelihood": "HIGH",
+          "owasp": [
+            "A03:2021 - Injection"
+          ],
+          "references": [
+            "https://cwe.mitre.org/data/definitions/89.html",
+            "https://go.dev/doc/database/sql-injection"
+          ],
+          "technology": [
+            "go",
+            "sql"
+          ]
+        },
+        "severity": "ERROR"
+      },
+      "path": "/home/dev/pindrop/testdata/vulnerable-app/src/admin.go",
+      "start": {
+        "col": 16,
+        "line": 22,
+        "offset": 724
+      }
+    },
+    {
+      "check_id": "go-exec-command-from-request",
+      "end": {
+        "col": 78,
+        "line": 50,
+        "offset": 1681
+      },
+      "extra": {
+        "fingerprint": "b1f083f35c1b46eaa4bed3e43ebce87944c2839fbdb874506f599253de901f4c9e34013c1ec7f0f4a5728b33342cf66e1cff2d56f093da267d4f343856a57f02_0",
+        "is_ignored": false,
+        "lines": "\tout, err := exec.Command(\"/bin/sh\", \"-c\", \"tar czf /tmp/backup.tgz \"+target).Output()",
+        "message": "A value read from the HTTP request reaches os/exec. If it lands in the command name, an attacker chooses the binary; if the command is run through a shell, they chain a second one. Validate against an allow-list, and pass arguments as separate parameters rather than through sh -c.",
+        "metadata": {
+          "category": "security",
+          "confidence": "HIGH",
+          "cwe": [
+            "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+          ],
+          "impact": "HIGH",
+          "likelihood": "HIGH",
+          "owasp": [
+            "A03:2021 - Injection"
+          ],
+          "references": [
+            "https://cwe.mitre.org/data/definitions/78.html",
+            "https://pkg.go.dev/os/exec"
+          ],
+          "technology": [
+            "go",
+            "net/http"
+          ]
+        },
+        "severity": "ERROR"
+      },
+      "path": "/home/dev/pindrop/testdata/vulnerable-app/src/admin.go",
+      "start": {
+        "col": 14,
+        "line": 50,
+        "offset": 1617
+      }
+    },
+    {
+      "check_id": "py-sql-string-formatting",
+      "end": {
+        "col": 75,
+        "line": 23,
+        "offset": 663
+      },
+      "extra": {
+        "fingerprint": "05ea4067e0fa5d5edb3e71fbb460094518ed0f33fc15996424cce9012a6745d555560d0af42f92d279d5327fa39061501e3bf5a14d3ff45d08b1ea4260b041cf_0",
+        "is_ignored": false,
+        "lines": "    cur.execute(f\"SELECT * FROM orders WHERE customer_id = {customer_id}\")",
+        "message": "A SQL statement is built by string formatting rather than parameter binding. Pass the values as the second argument instead — cursor.execute(\"... WHERE id = %s\", (user_id,)) — so the driver escapes them.",
+        "metadata": {
+          "category": "security",
+          "confidence": "HIGH",
+          "cwe": [
+            "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+          ],
+          "impact": "HIGH",
+          "likelihood": "HIGH",
+          "owasp": [
+            "A03:2021 - Injection"
+          ],
+          "references": [
+            "https://cwe.mitre.org/data/definitions/89.html",
+            "https://peps.python.org/pep-0249/#paramstyle"
+          ],
+          "technology": [
+            "python",
+            "sql"
+          ]
+        },
+        "severity": "ERROR"
+      },
+      "path": "/home/dev/pindrop/testdata/vulnerable-app/src/report.py",
+      "start": {
+        "col": 5,
+        "line": 23,
+        "offset": 593
+      }
+    },
+    {
+      "check_id": "py-subprocess-shell-true",
+      "end": {
+        "col": 84,
+        "line": 39,
+        "offset": 1146
+      },
+      "extra": {
+        "fingerprint": "bc5c57ba6c29b43b744b331dd2572e08ea2361e9c5ff1462307c1ad8aa8e3948debeeaec9722d2020b3182b9d5cf370cb0f7231e686a2cad514c156311d4f3fa_0",
+        "is_ignored": false,
+        "lines": "    subprocess.run(\"pg_dump \" + name + \" > /tmp/dump.sql\", shell=True, check=False)",
+        "message": "subprocess is invoked with shell=True and a command that is not a literal, so any shell metacharacter in the interpolated value runs as a second command. Drop shell=True and pass the command as a list of arguments.",
+        "metadata": {
+          "category": "security",
+          "confidence": "HIGH",
+          "cwe": [
+            "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+          ],
+          "impact": "HIGH",
+          "likelihood": "MEDIUM",
+          "owasp": [
+            "A03:2021 - Injection"
+          ],
+          "references": [
+            "https://cwe.mitre.org/data/definitions/78.html",
+            "https://docs.python.org/3/library/subprocess.html#security-considerations"
+          ],
+          "technology": [
+            "python"
+          ]
+        },
+        "severity": "ERROR"
+      },
+      "path": "/home/dev/pindrop/testdata/vulnerable-app/src/report.py",
+      "start": {
+        "col": 5,
+        "line": 39,
+        "offset": 1067
+      }
+    },
+    {
+      "check_id": "py-yaml-unsafe-load",
+      "end": {
+        "col": 26,
+        "line": 51,
+        "offset": 1446
+      },
+      "extra": {
+        "fingerprint": "541fc8feef15bdda8a9dff40359abfc814c64e22b3c5f45e9e6010b8f86e6f2b83f8ba39132561c46532a9727ea168f38a47635feb1f225041ae62d5bca4e761_0",
+        "is_ignored": false,
+        "lines": "    return yaml.load(raw)",
+        "message": "yaml.load without a safe loader constructs arbitrary Python objects from the document, which is remote code execution on untrusted input. Use yaml.safe_load, or pass Loader=yaml.SafeLoader.",
+        "metadata": {
+          "category": "security",
+          "confidence": "HIGH",
+          "cwe": [
+            "CWE-502: Deserialization of Untrusted Data"
+          ],
+          "impact": "HIGH",
+          "likelihood": "MEDIUM",
+          "owasp": [
+            "A08:2021 - Software and Data Integrity Failures"
+          ],
+          "references": [
+            "https://cwe.mitre.org/data/definitions/502.html",
+            "https://pyyaml.org/wiki/PyYAMLDocumentation"
+          ],
+          "technology": [
+            "python",
+            "pyyaml"
+          ]
+        },
+        "severity": "ERROR"
+      },
+      "path": "/home/dev/pindrop/testdata/vulnerable-app/src/report.py",
+      "start": {
+        "col": 12,
+        "line": 51,
+        "offset": 1432
+      }
+    },
+    {
+      "check_id": "py-flask-debug-enabled",
+      "end": {
+        "col": 40,
+        "line": 61,
+        "offset": 1654
+      },
+      "extra": {
+        "fingerprint": "3cdc582bee7cc75b6bfec3cce2e4bb6bc8900735114bc42b91d34c620afd6083354eec22ea4f573eb4ed7cee54d83e85b157cc7c4c8e9156d1c273ee1463f406_0",
+        "is_ignored": false,
+        "lines": "    app.run(host=\"0.0.0.0\", debug=True)",
+        "message": "Flask is started with debug=True, which serves the Werkzeug debugger. Its interactive console executes arbitrary Python on any unhandled exception, so a single traceback becomes remote code execution. Drive this from an environment variable that is off in production.",
+        "metadata": {
+          "category": "security",
+          "confidence": "HIGH",
+          "cwe": [
+            "CWE-489: Active Debug Code"
+          ],
+          "impact": "HIGH",
+          "likelihood": "MEDIUM",
+          "owasp": [
+            "A05:2021 - Security Misconfiguration"
+          ],
+          "references": [
+            "https://cwe.mitre.org/data/definitions/489.html",
+            "https://flask.palletsprojects.com/en/stable/debugging/"
+          ],
+          "technology": [
+            "python",
+            "flask"
+          ]
+        },
+        "severity": "WARNING"
+      },
+      "path": "/home/dev/pindrop/testdata/vulnerable-app/src/report.py",
+      "start": {
+        "col": 5,
+        "line": 61,
+        "offset": 1619
+      }
+    },
+    {
+      "check_id": "js-eval-user-input",
+      "end": {
+        "col": 44,
+        "line": 12,
+        "offset": 403
+      },
+      "extra": {
+        "fingerprint": "107428f7668a8bff82b2894e5976630e1ab802b200e22c08f70636f31173e96bb4ce2dd8f3dee1f7e492332aaba11ebb8466340d20c3bc367c07c66ad122305c_0",
+        "is_ignored": false,
+        "lines": "  const result = eval(req.query.expression);",
+        "message": "User-controlled input reaches eval() or the Function constructor, which executes it as code. An attacker who controls this request field can run arbitrary JavaScript in the server process. Parse the value instead: JSON.parse for data, or an explicit allow-list for a command name.",
+        "metadata": {
+          "category": "security",
+          "confidence": "HIGH",
+          "cwe": [
+            "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code ('Eval Injection')"
+          ],
+          "impact": "HIGH",
+          "likelihood": "HIGH",
+          "owasp": [
+            "A03:2021 - Injection"
+          ],
+          "references": [
+            "https://cwe.mitre.org/data/definitions/95.html",
+            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval#never_use_eval!"
+          ],
+          "technology": [
+            "javascript",
+            "express"
+          ]
+        },
+        "severity": "ERROR"
+      },
+      "path": "/home/dev/pindrop/testdata/vulnerable-app/src/routes.js",
+      "start": {
+        "col": 18,
+        "line": 12,
+        "offset": 377
+      }
+    },
+    {
+      "check_id": "js-eval-user-input",
+      "end": {
+        "col": 46,
+        "line": 20,
+        "offset": 703
+      },
+      "extra": {
+        "fingerprint": "107428f7668a8bff82b2894e5976630e1ab802b200e22c08f70636f31173e96bb4ce2dd8f3dee1f7e492332aaba11ebb8466340d20c3bc367c07c66ad122305c_1",
+        "is_ignored": false,
+        "lines": "  const render = new Function('data', source);",
+        "message": "User-controlled input reaches eval() or the Function constructor, which executes it as code. An attacker who controls this request field can run arbitrary JavaScript in the server process. Parse the value instead: JSON.parse for data, or an explicit allow-list for a command name.",
+        "metadata": {
+          "category": "security",
+          "confidence": "HIGH",
+          "cwe": [
+            "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code ('Eval Injection')"
+          ],
+          "impact": "HIGH",
+          "likelihood": "HIGH",
+          "owasp": [
+            "A03:2021 - Injection"
+          ],
+          "references": [
+            "https://cwe.mitre.org/data/definitions/95.html",
+            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval#never_use_eval!"
+          ],
+          "technology": [
+            "javascript",
+            "express"
+          ]
+        },
+        "severity": "ERROR"
+      },
+      "path": "/home/dev/pindrop/testdata/vulnerable-app/src/routes.js",
+      "start": {
+        "col": 18,
+        "line": 20,
+        "offset": 675
+      }
+    },
+    {
+      "check_id": "js-child-process-command-injection",
+      "end": {
+        "col": 56,
+        "line": 26,
+        "offset": 861
+      },
+      "extra": {
+        "fingerprint": "09d28785c40fd343e0ed0a56a5002a90b40ff208f4006c853e992b76feb9b530d2cdfb10f9b8036b17ed050411bdac76e8f99d7ff18fb94cccdbeaeb0b3b2372_0",
+        "is_ignored": false,
+        "lines": "  exec('convert ' + req.body.filename + ' /tmp/out.png', (err, stdout) => {",
+        "message": "User-controlled input reaches a shell command. child_process.exec and execSync pass their argument to /bin/sh, so a value containing ;, &&, or $() runs as a second command. Use execFile or spawn with the arguments as an array, which never involves a shell.",
+        "metadata": {
+          "category": "security",
+          "confidence": "HIGH",
+          "cwe": [
+            "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+          ],
+          "impact": "HIGH",
+          "likelihood": "HIGH",
+          "owasp": [
+            "A03:2021 - Injection"
+          ],
+          "references": [
+            "https://cwe.mitre.org/data/definitions/78.html",
+            "https://nodejs.org/api/child_process.html#child_processexecfilefile-args-options-callback"
+          ],
+          "technology": [
+            "javascript",
+            "express",
+            "nodejs"
+          ]
+        },
+        "severity": "ERROR"
+      },
+      "path": "/home/dev/pindrop/testdata/vulnerable-app/src/routes.js",
+      "start": {
+        "col": 8,
+        "line": 26,
+        "offset": 813
+      }
+    },
+    {
+      "check_id": "js-sql-query-from-user-input",
+      "end": {
+        "col": 73,
+        "line": 33,
+        "offset": 1058
+      },
+      "extra": {
+        "fingerprint": "b69611cfa97e2bed4056eabc88a7da6b69a3000f9da471cf864cb1a2d28c52c28592142beb68c95ca24404acf6b75b6246055f59208622bee704469baada8164_0",
+        "is_ignored": false,
+        "lines": "  db.query('SELECT * FROM users WHERE email = \"' + req.query.email + '\"', (err, rows) => {",
+        "message": "User-controlled input is concatenated into a SQL statement. Pass the value as a bound parameter instead — db.query(\"... WHERE id = ?\", [id]) — so the driver sends it as data rather than as part of the statement.",
+        "metadata": {
+          "category": "security",
+          "confidence": "HIGH",
+          "cwe": [
+            "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+          ],
+          "impact": "HIGH",
+          "likelihood": "HIGH",
+          "owasp": [
+            "A03:2021 - Injection"
+          ],
+          "references": [
+            "https://cwe.mitre.org/data/definitions/89.html"
+          ],
+          "technology": [
+            "javascript",
+            "sql",
+            "express"
+          ]
+        },
+        "severity": "ERROR"
+      },
+      "path": "/home/dev/pindrop/testdata/vulnerable-app/src/routes.js",
+      "start": {
+        "col": 12,
+        "line": 33,
+        "offset": 997
+      }
+    },
+    {
+      "check_id": "js-jwt-verify-algorithm-none",
+      "end": {
+        "col": 5,
+        "line": 50,
+        "offset": 1595
+      },
+      "extra": {
+        "fingerprint": "400c9f3343c2aa6dd55f8fc62bd3ac1c5dd33ad75a5724787b5bd5d1a401e2696a0fefee59bda5b497105d60803139dbeecf9a69e4f705c25d6188fd6870f966_0",
+        "is_ignored": false,
+        "lines": "  const claims = jwt.verify(req.headers.authorization, process.env.JWT_SECRET, {\n    algorithms: ['HS256', 'none'],\n  });",
+        "message": "jwt.verify accepts the \"none\" algorithm, which means the signature is not checked at all. Anyone can mint a token with any claims. Pin the algorithm you actually issue with, for example algorithms: [\"RS256\"].",
+        "metadata": {
+          "category": "security",
+          "confidence": "HIGH",
+          "cwe": [
+            "CWE-347: Improper Verification of Cryptographic Signature"
+          ],
+          "impact": "HIGH",
+          "likelihood": "HIGH",
+          "owasp": [
+            "A02:2021 - Cryptographic Failures"
+          ],
+          "references": [
+            "https://cwe.mitre.org/data/definitions/347.html",
+            "https://github.com/auth0/node-jsonwebtoken#jwtverifytoken-secretorpublickey-options-callback"
+          ],
+          "technology": [
+            "javascript",
+            "jwt"
+          ]
+        },
+        "severity": "ERROR"
+      },
+      "path": "/home/dev/pindrop/testdata/vulnerable-app/src/routes.js",
+      "start": {
+        "col": 18,
+        "line": 48,
+        "offset": 1492
+      }
+    },
+    {
+      "check_id": "derived-suppressed-rule",
+      "path": "/home/dev/pindrop/testdata/vulnerable-app/src/routes.js",
+      "start": {
+        "line": 90,
+        "col": 3,
+        "offset": 2400
+      },
+      "end": {
+        "line": 90,
+        "col": 30,
+        "offset": 2427
+      },
+      "extra": {
+        "message": "Suppressed by a noopengrep comment. Must not be reported.",
+        "metadata": {
+          "category": "security",
+          "confidence": "HIGH"
+        },
+        "severity": "ERROR",
+        "fingerprint": "derived0000000000000000000000000000000000000000000000000000000001_0",
+        "lines": "  const x = eval(req.query.q); // noopengrep",
+        "is_ignored": true
+      }
+    },
+    {
+      "check_id": "derived-inventory-rule",
+      "path": "/home/dev/pindrop/testdata/vulnerable-app/src/routes.js",
+      "start": {
+        "line": 91,
+        "col": 1,
+        "offset": 2450
+      },
+      "end": {
+        "line": 91,
+        "col": 20,
+        "offset": 2469
+      },
+      "extra": {
+        "message": "Catalogues a framework in use. Not a defect. Must not be reported.",
+        "metadata": {
+          "category": "best-practice"
+        },
+        "severity": "INVENTORY",
+        "fingerprint": "derived0000000000000000000000000000000000000000000000000000000002_0",
+        "lines": "const express = require(\"express\");",
+        "is_ignored": false
+      }
+    },
+    {
+      "check_id": "derived-low-confidence-rule",
+      "path": "/home/dev/pindrop/testdata/vulnerable-app/src/report.py",
+      "start": {
+        "line": 92,
+        "col": 1,
+        "offset": 2500
+      },
+      "end": {
+        "line": 92,
+        "col": 18,
+        "offset": 2517
+      },
+      "extra": {
+        "message": "A rule that expects to be wrong often. Must not be reported.",
+        "metadata": {
+          "category": "security",
+          "confidence": "LOW"
+        },
+        "severity": "WARNING",
+        "fingerprint": "derived0000000000000000000000000000000000000000000000000000000003_0",
+        "lines": "    data = pickle.loads(blob)",
+        "is_ignored": false
+      }
+    }
+  ],
+  "version": "1.26.0"
+}

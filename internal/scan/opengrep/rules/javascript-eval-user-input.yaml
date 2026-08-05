@@ -1,0 +1,37 @@
+rules:
+  - id: js-eval-user-input
+    mode: taint
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      User-controlled input reaches eval() or the Function constructor, which
+      executes it as code. An attacker who controls this request field can run
+      arbitrary JavaScript in the server process. Parse the value instead:
+      JSON.parse for data, or an explicit allow-list for a command name.
+    metadata:
+      category: security
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      technology: [javascript, express]
+      cwe:
+        - "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code ('Eval Injection')"
+      owasp:
+        - "A03:2021 - Injection"
+      references:
+        - https://cwe.mitre.org/data/definitions/95.html
+        - https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval#never_use_eval!
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: $REQ.body
+              - pattern: $REQ.query
+              - pattern: $REQ.params
+              - pattern: $REQ.headers
+          - metavariable-regex:
+              metavariable: $REQ
+              regex: ^(req|request|ctx)$
+    pattern-sinks:
+      - pattern-either:
+          - pattern: eval(...)
+          - pattern: new Function(...)

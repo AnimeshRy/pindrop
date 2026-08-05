@@ -15,7 +15,14 @@ SHELL := /bin/bash
 # points at the older install's precompiled stdlib, producing
 # `compile: version "goX" does not match go tool version "goY"`. Modern Go
 # detects its own GOROOT, so clearing it is always correct here.
-GO := env -u GOROOT go
+#
+# This applies to anything that resolves the stdlib through go/packages, not just
+# the driver: golangci-lint's typecheck reads GOROOT too and fails identically,
+# except that it reports the mismatch against an unrelated import (`could not
+# import errors`), which sends you looking in the wrong place. Prefix every
+# Go-aware tool with $(NO_GOROOT); never invoke one bare.
+NO_GOROOT := env -u GOROOT
+GO        := $(NO_GOROOT) go
 
 BIN          := bin
 BINARY       := $(BIN)/pindrop
@@ -28,6 +35,8 @@ GOFUMPT_VERSION       := v0.11.0
 # Pinned rather than tracking latest: Trivy's release channel was compromised
 # twice in 2026, and its report schema is a contract we parse.
 TRIVY_VERSION         := v0.72.0
+OSV_SCANNER_VERSION   := v2.4.0
+OPENGREP_VERSION      := v1.26.0
 
 # golangci-lint refuses to analyze a module whose `go` directive is newer than
 # the Go release it was itself built with, and its published module targets an
@@ -45,9 +54,13 @@ GO_TOOLCHAIN := go1.26.5
 MISE      := $(shell command -v mise 2>/dev/null)
 mise_tool = $(if $(MISE),$(wildcard $(shell $(MISE) which $(1) 2>/dev/null)))
 
+# These hold bare paths, because they are also used as target prerequisites.
+# Prefix $(NO_GOROOT) when running them — see the note above.
 GOLANGCI_LINT := $(or $(call mise_tool,golangci-lint),$(BIN)/golangci-lint)
 GOFUMPT       := $(or $(call mise_tool,gofumpt),$(BIN)/gofumpt)
 TRIVY         := $(or $(call mise_tool,trivy),$(BIN)/trivy)
+OSV_SCANNER   := $(or $(call mise_tool,osv-scanner),$(BIN)/osv-scanner)
+OPENGREP      := $(or $(call mise_tool,opengrep),$(BIN)/opengrep)
 
 PNPM := pnpm --dir web
 
@@ -62,7 +75,7 @@ help: ## Show this help
 ##@ Setup
 
 .PHONY: setup
-setup: tools trivy web-install ## Install everything needed to build and run
+setup: tools trivy osv-scanner opengrep web-install ## Install everything needed to build and run
 	@echo
 	@echo "Setup complete. Try: ./bin/pindrop scan ."
 
@@ -71,6 +84,12 @@ tools: $(GOLANGCI_LINT) $(GOFUMPT) ## Install pinned Go tools into ./bin
 
 .PHONY: trivy
 trivy: $(TRIVY) ## Install the pinned Trivy release into ./bin
+
+.PHONY: osv-scanner
+osv-scanner: $(OSV_SCANNER) ## Install the pinned OSV-Scanner release into ./bin
+
+.PHONY: opengrep
+opengrep: $(OPENGREP) ## Install the pinned Opengrep release into ./bin
 
 # pindrop looks for trivy on PATH and then beside its own binary, so installing
 # here is enough — ./bin does not need to be on PATH.
@@ -91,6 +110,36 @@ $(BIN)/gofumpt:
 	@mkdir -p $(BIN)
 	GOTOOLCHAIN=$(GO_TOOLCHAIN) GOBIN=$(CURDIR)/$(BIN) \
 		$(GO) install mvdan.cc/gofumpt@$(GOFUMPT_VERSION)
+
+# Installed via `go install` rather than the release tarball: it is a Go program,
+# so this needs no extra download path, and the version is pinned either way.
+$(BIN)/osv-scanner:
+	@mkdir -p $(BIN)
+	GOTOOLCHAIN=$(GO_TOOLCHAIN) GOBIN=$(CURDIR)/$(BIN) \
+		$(GO) install github.com/google/osv-scanner/v2/cmd/osv-scanner@$(OSV_SCANNER_VERSION)
+	@$(BIN)/osv-scanner --version | head -1
+
+# Opengrep publishes a single-file binary per platform rather than an install
+# script we can pin, so the asset name is derived from uname.
+#
+# Download the `opengrep_*` asset, never `opengrep-core_*`: the latter is the
+# internal OCaml engine only, and the single file already embeds it.
+$(BIN)/opengrep:
+	@mkdir -p $(BIN)
+	@set -euo pipefail; \
+	case "$$(uname -s)-$$(uname -m)" in \
+	  Darwin-arm64|Darwin-aarch64) asset=opengrep_osx_arm64 ;; \
+	  Darwin-x86_64)               asset=opengrep_osx_x86 ;; \
+	  Linux-x86_64)                asset=opengrep_manylinux_x86 ;; \
+	  Linux-aarch64|Linux-arm64)   asset=opengrep_manylinux_aarch64 ;; \
+	  *) echo "No Opengrep release asset for $$(uname -sm)."; \
+	     echo "Install it manually, then use --opengrep-binary. Skipping."; exit 0 ;; \
+	esac; \
+	echo "Downloading $$asset $(OPENGREP_VERSION)"; \
+	curl -sfL -o $(BIN)/opengrep \
+	  https://github.com/opengrep/opengrep/releases/download/$(OPENGREP_VERSION)/$$asset; \
+	chmod +x $(BIN)/opengrep
+	@$(BIN)/opengrep --version | head -1
 
 .PHONY: mise
 mise: ## Install the optional mise-managed toolchain (see mise.toml)
@@ -145,7 +194,7 @@ lint: lint-go lint-web ## Run all linters
 
 .PHONY: lint-go
 lint-go: $(GOLANGCI_LINT) ## Lint Go code
-	$(GOLANGCI_LINT) run ./...
+	$(NO_GOROOT) $(GOLANGCI_LINT) run ./...
 
 .PHONY: lint-web
 lint-web: ## Lint and typecheck the frontend
@@ -154,7 +203,7 @@ lint-web: ## Lint and typecheck the frontend
 
 .PHONY: fmt
 fmt: $(GOLANGCI_LINT) ## Format Go and frontend code
-	$(GOLANGCI_LINT) fmt ./...
+	$(NO_GOROOT) $(GOLANGCI_LINT) fmt ./...
 	$(PNPM) format
 
 .PHONY: verify
