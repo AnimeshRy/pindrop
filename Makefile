@@ -36,6 +36,7 @@ GOFUMPT_VERSION       := v0.11.0
 # twice in 2026, and its report schema is a contract we parse.
 TRIVY_VERSION         := v0.72.0
 OSV_SCANNER_VERSION   := v2.4.0
+OPENGREP_VERSION      := v1.26.0
 
 # golangci-lint refuses to analyze a module whose `go` directive is newer than
 # the Go release it was itself built with, and its published module targets an
@@ -59,6 +60,7 @@ GOLANGCI_LINT := $(or $(call mise_tool,golangci-lint),$(BIN)/golangci-lint)
 GOFUMPT       := $(or $(call mise_tool,gofumpt),$(BIN)/gofumpt)
 TRIVY         := $(or $(call mise_tool,trivy),$(BIN)/trivy)
 OSV_SCANNER   := $(or $(call mise_tool,osv-scanner),$(BIN)/osv-scanner)
+OPENGREP      := $(or $(call mise_tool,opengrep),$(BIN)/opengrep)
 
 PNPM := pnpm --dir web
 
@@ -73,7 +75,7 @@ help: ## Show this help
 ##@ Setup
 
 .PHONY: setup
-setup: tools trivy osv-scanner web-install ## Install everything needed to build and run
+setup: tools trivy osv-scanner opengrep web-install ## Install everything needed to build and run
 	@echo
 	@echo "Setup complete. Try: ./bin/pindrop scan ."
 
@@ -85,6 +87,9 @@ trivy: $(TRIVY) ## Install the pinned Trivy release into ./bin
 
 .PHONY: osv-scanner
 osv-scanner: $(OSV_SCANNER) ## Install the pinned OSV-Scanner release into ./bin
+
+.PHONY: opengrep
+opengrep: $(OPENGREP) ## Install the pinned Opengrep release into ./bin
 
 # pindrop looks for trivy on PATH and then beside its own binary, so installing
 # here is enough — ./bin does not need to be on PATH.
@@ -113,6 +118,28 @@ $(BIN)/osv-scanner:
 	GOTOOLCHAIN=$(GO_TOOLCHAIN) GOBIN=$(CURDIR)/$(BIN) \
 		$(GO) install github.com/google/osv-scanner/v2/cmd/osv-scanner@$(OSV_SCANNER_VERSION)
 	@$(BIN)/osv-scanner --version | head -1
+
+# Opengrep publishes a single-file binary per platform rather than an install
+# script we can pin, so the asset name is derived from uname.
+#
+# Download the `opengrep_*` asset, never `opengrep-core_*`: the latter is the
+# internal OCaml engine only, and the single file already embeds it.
+$(BIN)/opengrep:
+	@mkdir -p $(BIN)
+	@set -euo pipefail; \
+	case "$$(uname -s)-$$(uname -m)" in \
+	  Darwin-arm64|Darwin-aarch64) asset=opengrep_osx_arm64 ;; \
+	  Darwin-x86_64)               asset=opengrep_osx_x86 ;; \
+	  Linux-x86_64)                asset=opengrep_manylinux_x86 ;; \
+	  Linux-aarch64|Linux-arm64)   asset=opengrep_manylinux_aarch64 ;; \
+	  *) echo "No Opengrep release asset for $$(uname -sm)."; \
+	     echo "Install it manually, then use --opengrep-binary. Skipping."; exit 0 ;; \
+	esac; \
+	echo "Downloading $$asset $(OPENGREP_VERSION)"; \
+	curl -sfL -o $(BIN)/opengrep \
+	  https://github.com/opengrep/opengrep/releases/download/$(OPENGREP_VERSION)/$$asset; \
+	chmod +x $(BIN)/opengrep
+	@$(BIN)/opengrep --version | head -1
 
 .PHONY: mise
 mise: ## Install the optional mise-managed toolchain (see mise.toml)

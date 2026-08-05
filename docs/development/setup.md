@@ -7,12 +7,18 @@
 | **Go** | 1.26+ | `go.mod` declares `toolchain go1.26.5`; with the default `GOTOOLCHAIN=auto` an older Go auto-downloads it |
 | **Node** | 22.13+ | Floor is set by pnpm 11, which is stricter than Vite 8's |
 | **pnpm** | 11.x | `corepack enable pnpm` |
-| **Trivy** | 0.72.0 | Runtime dependency of `pindrop scan`; `make setup` installs it |
+| **Trivy** | 0.72.0 | Scanner used by `pindrop scan`; `make setup` installs it |
+| **OSV-Scanner** | 2.4.0 | Scanner; `make setup` installs it |
+| **Opengrep** | 1.26.0 | Scanner; `make setup` installs it |
+
+Every scanner is optional at runtime. A missing one is reported with install
+guidance and dropped, so `pindrop scan .` works with any subset installed; only
+an empty set is fatal.
 
 ## First run
 
 ```bash
-make setup          # Go tools + Trivy into ./bin, then pnpm install
+make setup          # Go tools + scanners into ./bin, then pnpm install
 make build          # frontend build + Go binary → ./bin/pindrop
 ./bin/pindrop scan .
 ```
@@ -40,20 +46,33 @@ Three things to know:
   `go.mod`. mise exports `GOROOT`; if the two disagree the go driver re-execs
   into a different toolchain and hits the version-mismatch error below.
 
-`make setup` installs a pinned Trivy into `./bin`. **`./bin` does not need to be
-on your PATH** — pindrop looks for `trivy` on PATH first, then beside its own
-executable. To use a copy you already have, pass `--trivy-binary /path/to/trivy`.
+`make setup` installs the pinned scanners into `./bin`. **`./bin` does not need to
+be on your PATH** — pindrop looks for each tool on PATH first, then beside its own
+executable. To use copies you already have, pass `--trivy-binary`, `--osv-binary`,
+or `--opengrep-binary`.
 
-Trivy is pinned rather than tracking latest: its release channel was compromised
-twice in 2026, and its report schema is a contract we parse.
+Note that `mise.toml` covers Trivy but not OSV-Scanner or Opengrep, so `make
+setup` installs those two into `./bin` even on a mise-managed machine.
+
+Every scanner is pinned rather than tracking latest. Trivy's release channel was
+compromised twice in 2026, and each tool's report schema is a contract we parse.
+Opengrep has no install script we can pin, so the Makefile downloads the
+single-file release asset for the current platform directly — the `opengrep_*`
+asset, never `opengrep-core_*`, which is the internal engine alone.
+
+Opengrep's first run of a given version is slow: the distributed binary is a
+Nuitka `--onefile` build and self-extracts its embedded engine into the user cache
+before doing any work.
 
 ## Make targets
 
 ```
 make help          list everything
-make setup         install Go tools, Trivy, and frontend dependencies
+make setup         install Go tools, scanners, and frontend dependencies
 make mise          install the optional mise-managed toolchain
 make trivy         install just the pinned Trivy
+make osv-scanner   install just the pinned OSV-Scanner
+make opengrep      install just the pinned Opengrep
 make build         frontend + binary (the full artifact)
 make build-go      Go binary only, reusing whatever is in web/dist
 make web           frontend only
@@ -119,10 +138,11 @@ curl -s localhost:7777/api/v1/findings | head -40
 curl -s -o /dev/null -w '%{http_code}\n' localhost:7777/deep/link   # 200, SPA shell
 ```
 
-Two behaviors worth checking by hand, because they are the ones users hit:
+Four behaviors worth checking by hand, because they are the ones users hit:
 
 ```bash
-# Missing Trivy must give guidance, not a raw exec error
+# A missing scanner must give guidance, not a raw exec error, and must not
+# abort the scan while any other scanner is usable.
 ./bin/pindrop scan . --trivy-binary nope
 
 # Fingerprints must be byte-identical across runs
@@ -130,9 +150,21 @@ Two behaviors worth checking by hand, because they are the ones users hit:
 ./bin/pindrop scan ./testdata/vulnerable-app --format json --out /tmp/b.json
 diff <(jq -S '[.findings[].fingerprint]|sort' /tmp/a.json) \
      <(jq -S '[.findings[].fingerprint]|sort' /tmp/b.json)
+
+# ...and across a reformat, which is the property triage depends on. Reindent a
+# fixture source file, rescan, and the code findings' fingerprints must not move
+# even though their line numbers do.
+./bin/pindrop scan ./testdata/vulnerable-app --format json --out /tmp/c.json
+diff <(jq -S '[.findings[]|select(.category=="code")|.fingerprint]|sort' /tmp/a.json) \
+     <(jq -S '[.findings[]|select(.category=="code")|.fingerprint]|sort' /tmp/c.json)
+
+# Opengrep's bundled rules must stay quiet on real code. Anything but 0 here
+# means a rule is too broad.
+./bin/pindrop scan ./internal --trivy-binary nope --osv-binary nope --format json \
+  | jq '[.findings[]|select(.category=="code")]|length'
 ```
 
-CI runs all of this, including the two above.
+CI runs all of this except the reformat check, which needs a working-tree edit.
 
 ## Troubleshooting
 
@@ -143,5 +175,8 @@ CI runs all of this, including the two above.
 | `Dashboard not built` page | Binary compiled before `pnpm build`; run `make build` |
 | `no scan report at .pindrop/report.json` | Not an error — run a scan with `--out` first |
 | Slow first scan | Trivy downloading its vulnerability DB; pass `--cache-dir` to reuse it |
+| Slow first Opengrep scan | Its `--onefile` binary self-extracting into the user cache; once per version |
 | `trivy not found in PATH` | Run `make trivy`, or pass `--trivy-binary` |
+| No `category: code` findings at all | Opengrep missing (check stderr for the skip warning), or `--opengrep-rules` pointing somewhere empty |
+| Opengrep fails with exit 7 | A rule file failed to parse. Usually an unquoted YAML scalar containing `: ` — quote the pattern |
 | `compile: version "goX" does not match go tool version "goY"` | An exported `GOROOT` — from your shell profile, or from mise if its `go` version differs from `go.mod`'s `toolchain`. Remove it / align the versions. The Makefile already clears it. |

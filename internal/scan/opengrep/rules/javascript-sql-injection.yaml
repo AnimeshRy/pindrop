@@ -1,0 +1,42 @@
+rules:
+  - id: js-sql-query-from-user-input
+    mode: taint
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      User-controlled input is concatenated into a SQL statement. Pass the value
+      as a bound parameter instead — db.query("... WHERE id = ?", [id]) — so the
+      driver sends it as data rather than as part of the statement.
+    metadata:
+      category: security
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      technology: [javascript, sql, express]
+      cwe:
+        - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+      owasp:
+        - "A03:2021 - Injection"
+      references:
+        - https://cwe.mitre.org/data/definitions/89.html
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: $REQ.body
+              - pattern: $REQ.query
+              - pattern: $REQ.params
+              - pattern: $REQ.headers
+          - metavariable-regex:
+              metavariable: $REQ
+              regex: ^(req|request|ctx)$
+    pattern-sinks:
+      # focus-metavariable restricts the sink to the statement itself. Without it
+      # a correctly parameterized call — query(sql, [tainted]) — would match on
+      # its bound-parameter array, which is the safe form this rule exists to
+      # recommend.
+      - patterns:
+          - pattern-either:
+              - pattern: $DB.query($SQL, ...)
+              - pattern: $DB.execute($SQL, ...)
+              - pattern: $DB.raw($SQL, ...)
+          - focus-metavariable: $SQL

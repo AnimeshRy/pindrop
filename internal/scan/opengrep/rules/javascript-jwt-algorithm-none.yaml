@@ -1,0 +1,29 @@
+rules:
+  - id: js-jwt-verify-algorithm-none
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      jwt.verify accepts the "none" algorithm, which means the signature is not
+      checked at all. Anyone can mint a token with any claims. Pin the algorithm
+      you actually issue with, for example algorithms: ["RS256"].
+    metadata:
+      category: security
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      technology: [javascript, jwt]
+      cwe:
+        - "CWE-347: Improper Verification of Cryptographic Signature"
+      owasp:
+        - "A02:2021 - Cryptographic Failures"
+      references:
+        - https://cwe.mitre.org/data/definitions/347.html
+        - https://github.com/auth0/node-jsonwebtoken#jwtverifytoken-secretorpublickey-options-callback
+    # These patterns are quoted because an unquoted YAML scalar cannot contain
+    # ": " — `algorithms: [...]` inside the pattern would be read as a nested
+    # mapping and the whole rule file rejected with exit code 7.
+    patterns:
+      - pattern-either:
+          - pattern: '$JWT.verify(..., {..., algorithms: [..., "none", ...], ...}, ...)'
+          - pattern: '$JWT.verify(..., {..., algorithms: [..., "None", ...], ...}, ...)'
+          - pattern: '$JWT.verify(..., {..., algorithms: [..., "NONE", ...], ...}, ...)'

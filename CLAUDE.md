@@ -17,8 +17,8 @@ Full context: [docs/product/vision.md](docs/product/vision.md).
 
 ## Current state — Phase 0 complete
 
-`pindrop scan` (Trivy and OSV-Scanner) and `pindrop serve` (embedded React
-dashboard).
+`pindrop scan` (Trivy, OSV-Scanner, and Opengrep) and `pindrop serve` (embedded
+React dashboard).
 **Nothing is persisted yet** — fingerprints are computed and displayed but not
 compared across runs. Cross-scan diffing and triage are Phase 1.
 
@@ -27,6 +27,14 @@ Cross-tool identity and dedup (`scan.Dedup`, `canonical.go`,
 because they change fingerprints and must precede persistence. Adding OSV-Scanner
 then cost nothing in noise: 14 raw findings on the fixture merge to the same 8
 Trivy alone reported, four of them now corroborated by both tools.
+
+Opengrep followed, adding source-code findings (`category: code`). It needed no
+fingerprint change — `CategoryCode` already hashed rule ID, path, and normalized
+snippet — but it did need a ruleset, because no redistributable one exists
+([ADR 0007](docs/decisions/0007-first-party-opengrep-rules.md)). Its 11 fixture
+findings are all net new, since a SAST finding has nothing to merge with; the
+number to watch for this scanner is precision, and it reports 0 against the
+project's own source.
 
 Next: [docs/product/roadmap.md](docs/product/roadmap.md).
 
@@ -91,6 +99,18 @@ Requiring every tool to be installed breaks the zero-setup first run. Relatedly,
 not every tool has Trivy's `--exit-code 0`: OSV-Scanner signals findings *through*
 its exit code, so `osv.resultExit` classifies them (0 and 1–126 fine, 128 means no
 manifests, 127 and 129+ are failures).
+
+**Opengrep has three flags that are not optional.** Omitting `--config` does not
+mean "no rules" — it means `auto`, which downloads ~2.4 MB of Semgrep-licensed
+rules from `semgrep.dev` on every scan. `--no-rewrite-rule-ids` stops Opengrep
+prefixing each rule's id with its file path, which matters because `check_id`
+becomes `Finding.RuleID` and is a fingerprint input; **renaming a bundled rule is
+a data migration.** `--no-git-ignore` stops it scanning only git-tracked files,
+which otherwise turns an untracked target into a silent, successful zero findings.
+And never pass `--error`: findings exit 0 here, so non-zero unambiguously means
+the tool broke. Rules are first-party by necessity — every existing corpus
+forbids commercial use ([ADR
+0007](docs/decisions/0007-first-party-opengrep-rules.md)).
 
 **Adapters must filter, not just forward.** Trivy's license scanner classifies
 every license it finds; forwarding all of them produced 24 MIT/Apache entries

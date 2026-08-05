@@ -1,0 +1,29 @@
+rules:
+  - id: go-sql-query-from-sprintf
+    languages: [go]
+    severity: ERROR
+    message: >-
+      A SQL statement is assembled with fmt.Sprintf. database/sql supports
+      placeholders — db.Query("... WHERE id = $1", id) — which send the value as
+      data and cannot change the statement's structure.
+    metadata:
+      category: security
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      technology: [go, sql]
+      cwe:
+        - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+      owasp:
+        - "A03:2021 - Injection"
+      references:
+        - https://cwe.mitre.org/data/definitions/89.html
+        - https://go.dev/doc/database/sql-injection
+    pattern-either:
+      - pattern: $DB.Query(fmt.Sprintf(...), ...)
+      - pattern: $DB.QueryRow(fmt.Sprintf(...), ...)
+      - pattern: $DB.Exec(fmt.Sprintf(...), ...)
+      - pattern: $DB.QueryContext($CTX, fmt.Sprintf(...), ...)
+      - pattern: $DB.QueryRowContext($CTX, fmt.Sprintf(...), ...)
+      - pattern: $DB.ExecContext($CTX, fmt.Sprintf(...), ...)
+      - pattern: $DB.Prepare(fmt.Sprintf(...), ...)

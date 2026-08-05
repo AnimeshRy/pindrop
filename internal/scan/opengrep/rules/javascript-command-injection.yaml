@@ -1,0 +1,39 @@
+rules:
+  - id: js-child-process-command-injection
+    mode: taint
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      User-controlled input reaches a shell command. child_process.exec and
+      execSync pass their argument to /bin/sh, so a value containing ;, &&, or
+      $() runs as a second command. Use execFile or spawn with the arguments as
+      an array, which never involves a shell.
+    metadata:
+      category: security
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      technology: [javascript, express, nodejs]
+      cwe:
+        - "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+      owasp:
+        - "A03:2021 - Injection"
+      references:
+        - https://cwe.mitre.org/data/definitions/78.html
+        - https://nodejs.org/api/child_process.html#child_processexecfilefile-args-options-callback
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: $REQ.body
+              - pattern: $REQ.query
+              - pattern: $REQ.params
+              - pattern: $REQ.headers
+          - metavariable-regex:
+              metavariable: $REQ
+              regex: ^(req|request|ctx)$
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $CP.exec($CMD, ...)
+              - pattern: $CP.execSync($CMD, ...)
+          - focus-metavariable: $CMD

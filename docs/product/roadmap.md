@@ -61,20 +61,32 @@ Ordered cheapest-and-most-informative first:
   rather than assumed. **Measured on the bundled fixture: 14 raw findings from two
   scanners merged to 8 — the same count Trivy alone produced, with four findings
   now corroborated by both tools.**
+- ✅ **Opengrep** — SAST, and the host engine for the AI-code rules that are the
+  real differentiator. Preferred over Semgrep CE because of the rule-registry
+  licensing change. **Taken before TruffleHog**, out of the order below: it was
+  listed later on the assumption that its rule strategy was the biggest lift, and
+  that turned out to be a licensing decision rather than a body of work — no
+  redistributable ruleset exists, so Pindrop ships ten of its own
+  ([ADR 0007](../decisions/0007-first-party-opengrep-rules.md)). TruffleHog's
+  blocker, an ADR for sending discovered secrets to third-party APIs, is still
+  open, so nothing was skipped over.
+  **Measured on the bundled fixture: 11 new findings, all of them net new —
+  a SAST finding has no dependency finding to merge with. The number that matters
+  for this scanner is precision instead: 0 findings against `internal/`, `cmd/`,
+  and `web/src/`.**
 - **Trivy `k8s`** — EKS posture as a new `Target` kind, no new adapter. Blocked on
   resource identity above.
 - **TruffleHog** (AGPL, subprocess only) — secrets, verified-only. Replaces
   Gitleaks in the plan: Trivy already does regex secrets, so a second regex engine
   adds matches rather than information, whereas TruffleHog's verifiers prove a
   credential is live. Its outbound verification calls need an ADR first.
-- **Opengrep** — SAST, and the host engine for the AI-code rules that are the real
-  differentiator. Preferred over Semgrep CE because of the rule-registry licensing
-  change. Biggest lift: needs a rule strategy, not just an adapter.
 - **zizmor** (MIT) — GitHub Actions workflows. Small scope, near-zero noise, and
   agent-written CI gets template injection wrong routinely.
 
 Cross-tool SAST dedup stays unsolved: two engines' rule IDs for "SQL injection"
-share no namespace to canonicalize onto. Deliberate — see ADR 0006.
+share no namespace to canonicalize onto. Deliberate — see ADR 0006. The Opengrep
+adapter therefore populates no `Aliases`, which is the one place that omission is
+correct rather than a bug.
 
 ## Phase 3 — Server and accounts
 

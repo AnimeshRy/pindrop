@@ -13,6 +13,7 @@ import (
 
 	"github.com/AnimeshRy/pindrop/internal/report"
 	"github.com/AnimeshRy/pindrop/internal/scan"
+	"github.com/AnimeshRy/pindrop/internal/scan/opengrep"
 	"github.com/AnimeshRy/pindrop/internal/scan/osv"
 	"github.com/AnimeshRy/pindrop/internal/scan/trivy"
 )
@@ -26,16 +27,18 @@ const defaultTableLimit = 25
 
 // scanOptions holds the flags for `pindrop scan`.
 type scanOptions struct {
-	format       string
-	out          string
-	scanners     []string
-	minSeverity  string
-	limit        int
-	failOn       string
-	trivyBinary  string
-	osvBinary    string
-	cacheDir     string
-	callAnalysis bool
+	format         string
+	out            string
+	scanners       []string
+	minSeverity    string
+	limit          int
+	failOn         string
+	trivyBinary    string
+	osvBinary      string
+	opengrepBinary string
+	opengrepRules  []string
+	cacheDir       string
+	callAnalysis   bool
 }
 
 func newScanCommand(g *globals) *cobra.Command {
@@ -77,6 +80,10 @@ directory.`),
 		"path to the Trivy executable")
 	f.StringVar(&opts.osvBinary, "osv-binary", "osv-scanner",
 		"path to the OSV-Scanner executable")
+	f.StringVar(&opts.opengrepBinary, "opengrep-binary", "opengrep",
+		"path to the Opengrep executable")
+	f.StringSliceVar(&opts.opengrepRules, "opengrep-rules", nil,
+		"rule file, directory, or registry name to use instead of the bundled ruleset")
 	f.BoolVar(&opts.callAnalysis, "call-analysis", false,
 		"enable OSV-Scanner reachability analysis (slower; compiles the target)")
 	f.StringVar(&opts.cacheDir, "cache-dir", "",
@@ -116,6 +123,10 @@ func runScan(ctx context.Context, g *globals, opts *scanOptions, path string) er
 		osv.New(
 			osv.WithBinary(opts.osvBinary),
 			osv.WithCallAnalysis(opts.callAnalysis),
+		),
+		opengrep.New(
+			opengrep.WithBinary(opts.opengrepBinary),
+			opengrep.WithRules(opts.opengrepRules...),
 		),
 	}
 

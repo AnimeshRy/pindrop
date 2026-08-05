@@ -66,9 +66,14 @@ runtime, no separate frontend deploy.
 
 ## What it finds
 
-Via Trivy today — dependency CVEs, leaked secrets, infrastructure
-misconfiguration, and license violations. Gitleaks and Opengrep are next; see
+Dependency CVEs, leaked secrets, infrastructure misconfiguration, and license
+violations via **Trivy**; a second advisory corpus via **OSV-Scanner**; and
+insecure patterns in source code via **Opengrep**, running rules we write
+ourselves. TruffleHog and zizmor are next; see
 [docs/architecture/scanners.md](docs/architecture/scanners.md).
+
+Every scanner is optional. A missing one reduces coverage and prints how to
+install it; it does not fail the scan.
 
 ## Stable fingerprints
 

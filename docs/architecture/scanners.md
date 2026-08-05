@@ -75,6 +75,11 @@ Practical rules for subprocess adapters:
 6. Register it in the slice in `internal/cli/scan.go`. That is the only place
    outside the new package that changes.
 
+A tool that needs rules or policies of its own keeps them inside its package and
+embeds them, as `opengrep/rules.go` does with `//go:embed all:rules`. Anything the
+tool must read from disk gets extracted to a fresh temporary directory per scan —
+`scan.Run` fans scanners out in parallel, so a shared mutable directory is a race.
+
 ## Tool inventory and licensing
 
 Licensing constrains what we can do, and getting it wrong is expensive.
@@ -83,8 +88,8 @@ Licensing constrains what we can do, and getting it wrong is expensive.
 |---|---|---|---|---|
 | **Trivy** | Apache-2.0 | Go | **In use** | Subprocess. SCA, IaC, secrets, licenses in one invocation |
 | **OSV-Scanner** | Apache-2.0 | Go | **In use** | Second SCA opinion on a different advisory corpus, and the only free source of reachability — see below |
+| **Opengrep** | LGPL-2.1 | OCaml | **In use** | SAST, on rules we write ourselves. Preferred over Semgrep CE — see below |
 | **TruffleHog** | **AGPL-3.0** | Go | Phase 2 | Secrets, verified-only. **Subprocess only — never import** |
-| **Opengrep** | LGPL-2.1 | OCaml | Phase 2 | SAST. Preferred over Semgrep CE — see below |
 | **zizmor** | MIT | Rust | Phase 2 | GitHub Actions workflows. Small scope, near-zero noise |
 | **Trivy `k8s`** | Apache-2.0 | Go | Phase 2 | EKS posture with no new adapter — a new `Target` kind |
 | **Kubescape** | Apache-2.0 | Go | Later | CNCF Incubating. Purpose-built K8s posture, if Trivy's proves thin |
@@ -96,21 +101,36 @@ Licensing constrains what we can do, and getting it wrong is expensive.
 | **OWASP Dependency-Check** | Apache-2.0 | Java | Skipped | Java-centric, slow, high false-positive rate |
 | **Bandit / gosec / Brakeman** | various | various | Skipped | Per-language; Opengrep subsumes them with one adapter |
 
-### Measured result of adding the second scanner
+### Measured result of adding the second and third scanners
 
-On `testdata/vulnerable-app`, with Trivy and OSV-Scanner both enabled:
+On `testdata/vulnerable-app`:
 
-| | Count |
-|---|---|
-| Trivy raw findings | 8 |
-| OSV-Scanner raw findings | 6 |
-| Raw total | 14 |
-| **After `scan.Dedup`** | **8** |
+| | Trivy + OSV | + Opengrep |
+|---|---|---|
+| Trivy raw findings | 8 | 8 |
+| OSV-Scanner raw findings | 6 | 6 |
+| Opengrep raw findings | — | 11 |
+| Raw total | 14 | 25 |
+| **After `scan.Dedup`** | **8** | **19** |
+| Findings with `Agreement() == 2` | 4 | 4 |
 
-Adding an entire second scanner added **zero** net findings. Four vulnerabilities
-now carry `Agreement() == 2`, which is new information at no cost in noise. This
-is the number to re-measure after wiring any further scanner; if it goes the other
-way, the adapter is forwarding noise.
+Adding an entire **second** scanner added **zero** net findings — its six raw
+findings all merged. Four vulnerabilities carry `Agreement() == 2`, which is new
+information at no cost in noise.
+
+The **third** behaves differently and is supposed to: all eleven of Opengrep's
+findings are new, because none of them can merge with anything. They are the first
+findings in the product that are not about a dependency or a config file, so there
+is nothing for them to coincide with. Overlap is the thing to watch when a scanner
+duplicates an existing one's domain; a scanner that opens a *new* domain is
+measured on precision instead, which is the healthy-repo test below.
+
+That test is the one that matters here. The bundled ruleset reports **zero**
+findings against `internal/`, `cmd/`, and `web/src/` — the fixture files exist
+precisely so the adapter has something to find. Eleven findings on 3 deliberately
+vulnerable files and 0 on ~60 real source files is the ratio a curated set is for.
+Re-measure both numbers after wiring any further scanner, and after adding any
+rule; if the healthy-repo count moves off zero, a rule is too broad.
 
 Two Trivy findings (`CVE-2026-4800`, `CVE-2026-2950`) stayed unmerged. Both are
 cases where a single OSV advisory lists *two* CVEs as aliases, so
@@ -144,6 +164,47 @@ tested cheaply and early instead of after a phase has been committed to it.
 Note that OSV reports advisories under GHSA or GO IDs with the CVE in `aliases`,
 and names ecosystems differently from Trivy. Merging those is what
 [ADR 0006](../decisions/0006-canonical-identity-before-dedup.md) exists for.
+
+### Opengrep needs a rule strategy, not just an adapter
+
+Opengrep ships **no rules**, and neither existing corpus can be redistributed by
+a commercial product: `opengrep-rules` carries the Commons Clause, registry rules
+carry the Semgrep Rules License. So Pindrop embeds ten of its own in
+`internal/scan/opengrep/rules/`, extracted to a temporary directory per scan
+because `--config` needs a filesystem path. `--opengrep-rules` replaces them with
+anything the user prefers, registry shorthands included — their machine, their
+licensing call. Full reasoning in
+[ADR 0007](../decisions/0007-first-party-opengrep-rules.md); rule-authoring
+conventions in `internal/scan/opengrep/rules/README.md`.
+
+Four things about this adapter that are not guessable from the tool's docs, all
+verified against v1.26.0:
+
+- **Omitting `--config` is not "no rules", it is `auto`** — a ~2.4 MB download of
+  Semgrep-licensed rules from `semgrep.dev` on every scan. One missing flag is
+  both a network dependency and a licensing violation, with no error.
+- **`--no-rewrite-rule-ids` is mandatory.** By default Opengrep prefixes each
+  rule's id with the path of the file it came from. `check_id` becomes
+  `Finding.RuleID`, which is a fingerprint input — so the default makes identity
+  depend on the rules directory's layout, and reorganizing it would orphan every
+  triage decision. Even with the flag, **renaming a rule is a data migration.**
+- **`--no-git-ignore` is mandatory too.** Opengrep scans only git-tracked files by
+  default. A target that is not a repository, or a working tree with uncommitted
+  code, otherwise scans to a silent, successful zero findings.
+- **Findings do not produce a non-zero exit.** The inverse of the Trivy and
+  OSV-Scanner problem: `error_on_findings` defaults to false, so there is no
+  `--exit-code 0` equivalent to pass and `--error` must never be passed. Non-zero
+  therefore means something broke, and `osv.resultExit`'s job here is deciding how
+  badly: exit 3 (one unparseable source file) keeps the report, because one broken
+  file must not cost a repository its analysis, while 4, 5, and 7 mean the ruleset
+  failed to load — normally *our* ruleset, so they must be loud.
+
+`extra.lines` must reach `Location.Snippet`. It is the only thing distinguishing
+two hits of one rule in one file, and dropping it merges them silently. Note the
+schema will mislead you here: `semgrep_output_v1.atd` marks `lines`,
+`fingerprint`, and `metavars` as requiring a login, which is true of upstream
+Semgrep since 1.98 and false of Opengrep — emitting them unconditionally is much
+of why the fork exists. Capture the fixture; do not write it from the schema.
 
 ### Cloud and cluster findings break the location model
 
@@ -189,7 +250,9 @@ needs its own ADR before the adapter ships.
 **Semgrep's rule registry is not open source.** Semgrep CE itself is LGPL, but
 the registry rules moved to a restrictive license that prohibits building
 competing products. That is exactly what we are doing. Use **Opengrep** (the
-2025 fork) or curate our own rules; do not ship Semgrep's registry.
+2025 fork) or curate our own rules; do not ship Semgrep's registry. This is
+settled by [ADR 0007](../decisions/0007-first-party-opengrep-rules.md) — see
+the Opengrep section below for the flag that makes the trap concrete.
 
 **Trivy's release channel was compromised twice in 2026** (a malicious `v0.69.4`
 and a compromised `trivy-action`). Pin by version and verify checksums in any
@@ -207,6 +270,13 @@ and `reciprocal` — the copyleft categories that can actually oblige a commerci
 product to do something. `notice`, `permissive`, `unencumbered`, and `unknown`
 are dropped. A user who wants the full inventory wants an SBOM, which is a
 different feature.
+
+`actionable` in `opengrep/convert.go` is the same idea for SAST, and it exists
+mainly to protect the `--opengrep-rules` path: it drops matches the author already
+suppressed with a `nosemgrep` comment, the `EXPERIMENT` and `INVENTORY`
+severities, and rules declaring their own confidence as `LOW`. Against the
+bundled ruleset it is nearly a no-op; against a registry corpus of several hundred
+rules it is what stands between the user and the noise.
 
 **Apply the same test to every new adapter:** after wiring it up, scan a
 healthy repository. If the count jumps by more than a handful, the adapter is
@@ -247,3 +317,27 @@ Using the standard bands rather than an invented mapping is what makes the two
 tools agree: on the bundled fixture this reproduces Trivy's grading for all six
 advisories they both report. Severity sits on the group, so every advisory in a
 group shares one, and an advisory in no group is left `unknown`.
+
+**Opengrep has two severity vocabularies, and both are valid.** `ERROR`/`WARNING`/
+`INFO` are the original set; `CRITICAL`/`HIGH`/`MEDIUM`/`LOW` were added upstream
+in 1.72 and a rule may use either today. `opengrep/convert.go` handles all of
+them:
+
+| Tool value | `scan.Severity` |
+|---|---|
+| `CRITICAL` | `critical` |
+| `ERROR`, `HIGH` | `high` |
+| `WARNING`, `MEDIUM` | `medium` |
+| `LOW` | `low` |
+| `INFO` | `info` |
+| anything else | `unknown` |
+
+`ERROR → high` and `WARNING → medium` are the equivalences upstream states in its
+own schema, not a guess of ours. `EXPERIMENT` and `INVENTORY` are also legal
+values but never reach this function: `actionable` drops them first, because they
+mark rules used for rule development and for cataloguing what a codebase contains
+rather than for finding defects.
+
+Note that `metadata.confidence`, `likelihood`, and `impact` use a *third* scale
+(`LOW`/`MEDIUM`/`HIGH`) that is not interchangeable with severity. Only
+`confidence` is read, and only to drop self-declared low-confidence rules.

@@ -1,0 +1,29 @@
+rules:
+  - id: py-sql-string-formatting
+    languages: [python]
+    severity: ERROR
+    message: >-
+      A SQL statement is built by string formatting rather than parameter
+      binding. Pass the values as the second argument instead —
+      cursor.execute("... WHERE id = %s", (user_id,)) — so the driver escapes
+      them.
+    metadata:
+      category: security
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      technology: [python, sql]
+      cwe:
+        - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+      owasp:
+        - "A03:2021 - Injection"
+      references:
+        - https://cwe.mitre.org/data/definitions/89.html
+        - https://peps.python.org/pep-0249/#paramstyle
+    patterns:
+      - pattern-either:
+          - pattern: $CUR.execute(f"...", ...)
+          - pattern: $CUR.executemany(f"...", ...)
+          - pattern: $CUR.execute("..." % ..., ...)
+          - pattern: $CUR.execute("..." + $X, ...)
+          - pattern: $CUR.execute("...".format(...), ...)
