@@ -131,6 +131,22 @@ Location-scoped findings hash the normalized surrounding source instead.
 `NormalizeSnippet` collapses whitespace runs and trims, so re-indenting or
 running a formatter does not change identity, while changing actual tokens does.
 
+**For secrets, the snippet is not source text.** It cannot be: a report is
+written to disk and served over HTTP, so the offending text is the one thing that
+must not be stored. The TruffleHog adapter puts a `sha256:` digest of the
+credential there instead — computed inside the adapter, from a plaintext that is
+then discarded. It behaves identically for identity purposes: stable across runs,
+distinct for two different credentials in one file, and unchanged when the file is
+edited above them.
+
+Two consequences worth knowing. The digest means secret findings from different
+engines cannot merge, because no two secret scanners produce the same snippet
+string — Trivy stores its own redacted match there. And a scanner's own
+"redacted" rendering is not a substitute: it is per-detector implementation rather
+than schema, so keying identity on it would let an upstream release change our
+fingerprints. See
+[ADR 0008](../decisions/0008-trufflehog-verification-opt-in.md).
+
 Hash is SHA-256 truncated to 16 bytes, hex-encoded — 32 characters. Standard
 library only; no `xxhash` dependency for something this small.
 

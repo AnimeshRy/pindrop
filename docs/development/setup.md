@@ -10,6 +10,7 @@
 | **Trivy** | 0.72.0 | Scanner used by `pindrop scan`; `make setup` installs it |
 | **OSV-Scanner** | 2.4.0 | Scanner; `make setup` installs it |
 | **Opengrep** | 1.26.0 | Scanner; `make setup` installs it |
+| **TruffleHog** | 3.96.0 | Scanner; `make setup` installs it. AGPL — subprocess only, never imported |
 
 Every scanner is optional at runtime. A missing one is reported with install
 guidance and dropped, so `pindrop scan .` works with any subset installed; only
@@ -49,10 +50,10 @@ Three things to know:
 `make setup` installs the pinned scanners into `./bin`. **`./bin` does not need to
 be on your PATH** — pindrop looks for each tool on PATH first, then beside its own
 executable. To use copies you already have, pass `--trivy-binary`, `--osv-binary`,
-or `--opengrep-binary`.
+`--opengrep-binary`, or `--trufflehog-binary`.
 
-Note that `mise.toml` covers Trivy but not OSV-Scanner or Opengrep, so `make
-setup` installs those two into `./bin` even on a mise-managed machine.
+Note that `mise.toml` covers Trivy but not OSV-Scanner, Opengrep, or TruffleHog,
+so `make setup` installs those three into `./bin` even on a mise-managed machine.
 
 Every scanner is pinned rather than tracking latest. Trivy's release channel was
 compromised twice in 2026, and each tool's report schema is a contract we parse.
@@ -73,6 +74,7 @@ make mise          install the optional mise-managed toolchain
 make trivy         install just the pinned Trivy
 make osv-scanner   install just the pinned OSV-Scanner
 make opengrep      install just the pinned Opengrep
+make trufflehog    install just the pinned TruffleHog
 make build         frontend + binary (the full artifact)
 make build-go      Go binary only, reusing whatever is in web/dist
 make web           frontend only
@@ -82,6 +84,9 @@ make lint          golangci-lint + eslint + tsc
 make fmt           format Go and frontend
 make check         lint + test
 make run-scan      scan the bundled fixture
+make run-scan-secrets
+                   scan a throwaway credential dir — the secrets path,
+                   which the fixture cannot exercise
 make run-serve     scan the fixture, then serve the dashboard
 make clean         remove build artifacts
 ```
@@ -162,6 +167,22 @@ diff <(jq -S '[.findings[]|select(.category=="code")|.fingerprint]|sort' /tmp/a.
 # means a rule is too broad.
 ./bin/pindrop scan ./internal --trivy-binary nope --osv-binary nope --format json \
   | jq '[.findings[]|select(.category=="code")]|length'
+
+# The same gate for secrets, which the check above does not cover. Note this
+# scans internal/, which holds TruffleHog's own golden fixture — the fixture's
+# secret material is substituted precisely so this stays 0.
+./bin/pindrop scan ./internal --trivy-binary nope --osv-binary nope \
+  --opengrep-binary nope --format json \
+  | jq '[.findings[]|select(.category=="secret")]|length'
+
+# The secrets path, which the fixture cannot exercise — it contains no
+# detectable credential by design. This generates five into a temp directory,
+# scans it, and destroys it. Expect 8 findings from 5 credentials: three are
+# reported by both Trivy and TruffleHog. See docs/architecture/scanners.md.
+make run-scan-secrets
+
+# And no plaintext may reach the report. CI asserts this; to check by hand,
+# scan a throwaway dir and grep for the values you planted. Every hit is a bug.
 ```
 
 CI runs all of this except the reformat check, which needs a working-tree edit.
@@ -179,4 +200,7 @@ CI runs all of this except the reformat check, which needs a working-tree edit.
 | `trivy not found in PATH` | Run `make trivy`, or pass `--trivy-binary` |
 | No `category: code` findings at all | Opengrep missing (check stderr for the skip warning), or `--opengrep-rules` pointing somewhere empty |
 | Opengrep fails with exit 7 | A rule file failed to parse. Usually an unquoted YAML scalar containing `: ` — quote the pattern |
+| No `category: secret` findings at all | Expected on this repository and on the bundled fixture, neither of which contains a detectable secret. Check TruffleHog is present (stderr shows a skip warning if not) |
+| A secret shows as `high`, not `critical` | Verification is off by default, so nothing is proven live. Pass `--verify-secrets` — note it sends the credentials it finds to third-party APIs ([ADR 0008](../decisions/0008-trufflehog-verification-opt-in.md)) |
+| `--fail-on high` newly fails after upgrading | Unverified secrets grade `high`, so a secret-shaped placeholder that previously went unreported now trips the threshold |
 | `compile: version "goX" does not match go tool version "goY"` | An exported `GOROOT` — from your shell profile, or from mise if its `go` version differs from `go.mod`'s `toolchain`. Remove it / align the versions. The Makefile already clears it. |

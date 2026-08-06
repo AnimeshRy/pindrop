@@ -17,8 +17,8 @@ Full context: [docs/product/vision.md](docs/product/vision.md).
 
 ## Current state — Phase 0 complete
 
-`pindrop scan` (Trivy, OSV-Scanner, and Opengrep) and `pindrop serve` (embedded
-React dashboard).
+`pindrop scan` (Trivy, OSV-Scanner, Opengrep, and TruffleHog) and `pindrop serve`
+(embedded React dashboard).
 **Nothing is persisted yet** — fingerprints are computed and displayed but not
 compared across runs. Cross-scan diffing and triage are Phase 1.
 
@@ -35,6 +35,15 @@ snippet — but it did need a ruleset, because no redistributable one exists
 findings are all net new, since a SAST finding has nothing to merge with; the
 number to watch for this scanner is precision, and it reports 0 against the
 project's own source.
+
+TruffleHog followed, unblocking the ADR the roadmap had been waiting on:
+verification is **off by default** and opt-in via `--verify-secrets`
+([ADR 0008](docs/decisions/0008-trufflehog-verification-opt-in.md)). It adds 0
+findings on the fixture, which has no detectable secret by design, and 0 against
+the project's own source. Two things about it are worth carrying forward: with
+verification off it overlaps Trivy's 106 built-in secret rules and *will* report
+shared credentials twice, structurally rather than incidentally; and it is the
+first adapter whose snippet is derived rather than copied from the tool.
 
 Next: [docs/product/roadmap.md](docs/product/roadmap.md).
 
@@ -56,6 +65,7 @@ make build     # frontend + binary → ./bin/pindrop
 make check     # lint + test, Go and frontend
 make test      # go test -race ./...
 make run-scan  # scan the bundled fixture
+make run-scan-secrets  # scan a throwaway credential dir (the fixture has no secret)
 ```
 
 Never a golangci-lint from `PATH` — a system-wide v1 cannot read the v2 config.
@@ -119,7 +129,30 @@ categories. After wiring any new scanner, scan a healthy repo — if the count
 jumps by more than a handful, it needs a filter before it ships.
 
 **TruffleHog is AGPL-3.0.** Subprocess only. Importing it would place this
-entire codebase under AGPL.
+entire codebase under AGPL. This is also why the Makefile installs it from a
+pinned release rather than with `go install` as it does for OSV-Scanner — keeping
+it out of the module graph means nobody can move it into a tools file later.
+
+**TruffleHog has four non-obvious requirements.** Its output is **JSON Lines**,
+one object per finding, not a single document like every other adapter — hence a
+streaming `json.Decoder` (a `bufio.Scanner` caps a token at 64KB, and a secret
+inside a minified bundle blows past any limit you'd pick). `--no-update` is
+mandatory or it downloads and re-execs a newer build of itself mid-scan, so the
+pinned version is not the version that ran. **Never pass `--fail`**: omitting it
+makes findings exit 0, which is the property `--exit-code 0` buys for Trivy. And
+`filesystem` walks `.git`, so the default exclude list is load-bearing — a secret
+in a packfile gets a path that churns on every gc, and the path is a fingerprint
+input.
+
+**A secret's plaintext must never reach a `Finding`.** `Raw`, `RawV2`, and
+`SecretParts` all carry it; they are read to derive a `sha256:` identity digest
+and discarded. Reports are written to disk and served over HTTP, so a Finding
+holding a secret makes a secret scan a second copy of every secret. Note that
+TruffleHog's own `Redacted` field is *not* safe to forward verbatim — for
+`PrivateKey` it is the PEM header plus 32 characters of key body — so it is
+capped before display. Do not key identity on `Redacted` either: it is populated
+by some detectors and not others, so a conditional there means somebody else's
+release changes our fingerprints.
 
 **`web/dist/.gitkeep` must stay committed** or `//go:embed all:dist` fails to
 compile on a fresh clone.

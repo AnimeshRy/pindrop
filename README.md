@@ -67,9 +67,11 @@ runtime, no separate frontend deploy.
 ## What it finds
 
 Dependency CVEs, leaked secrets, infrastructure misconfiguration, and license
-violations via **Trivy**; a second advisory corpus via **OSV-Scanner**; and
-insecure patterns in source code via **Opengrep**, running rules we write
-ourselves. TruffleHog and zizmor are next; see
+violations via **Trivy**; a second advisory corpus via **OSV-Scanner**; insecure
+patterns in source code via **Opengrep**, running rules we write ourselves; and
+credentials via **TruffleHog**, which can additionally prove a key is *live* —
+opt-in with `--verify-secrets`, because doing so sends the secrets it finds to
+third-party APIs. zizmor is next; see
 [docs/architecture/scanners.md](docs/architecture/scanners.md).
 
 Every scanner is optional. A missing one reduces coverage and prints how to

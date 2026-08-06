@@ -67,26 +67,51 @@ Ordered cheapest-and-most-informative first:
   listed later on the assumption that its rule strategy was the biggest lift, and
   that turned out to be a licensing decision rather than a body of work — no
   redistributable ruleset exists, so Pindrop ships ten of its own
-  ([ADR 0007](../decisions/0007-first-party-opengrep-rules.md)). TruffleHog's
-  blocker, an ADR for sending discovered secrets to third-party APIs, is still
-  open, so nothing was skipped over.
+  ([ADR 0007](../decisions/0007-first-party-opengrep-rules.md)). At the time,
+  TruffleHog's blocker — an ADR for sending discovered secrets to third-party
+  APIs — was still open, so nothing was skipped over.
   **Measured on the bundled fixture: 11 new findings, all of them net new —
   a SAST finding has no dependency finding to merge with. The number that matters
   for this scanner is precision instead: 0 findings against `internal/`, `cmd/`,
   and `web/src/`.**
+- ✅ **TruffleHog** (AGPL, subprocess only) — secrets. Replaced Gitleaks in the
+  plan, on the grounds that Trivy already does regex secrets and a second regex
+  engine adds matches rather than information, whereas TruffleHog's verifiers
+  prove a credential is live. Its blocker is resolved: verification is off by
+  default and opt-in via `--verify-secrets`
+  ([ADR 0008](../decisions/0008-trufflehog-verification-opt-in.md)).
+  **The honest measurement: 0 findings on the bundled fixture, which contains no
+  detectable secret by design, and 0 against `internal/`, `cmd/`, `web/src/`.
+  It reports six findings against a scratch directory of fabricated credentials,
+  so the adapter works — but on this repository there is nothing to count.**
+  **The consequence to know about:** with verification off by default and the
+  `filesystem` source rather than `git`, the default path has neither capability
+  that distinguished it from Trivy, so on a repository where both fire the same
+  credential is reported twice. That duplication is structural, not incidental —
+  see `docs/architecture/scanners.md`.
 - **Trivy `k8s`** — EKS posture as a new `Target` kind, no new adapter. Blocked on
   resource identity above.
-- **TruffleHog** (AGPL, subprocess only) — secrets, verified-only. Replaces
-  Gitleaks in the plan: Trivy already does regex secrets, so a second regex engine
-  adds matches rather than information, whereas TruffleHog's verifiers prove a
-  credential is live. Its outbound verification calls need an ADR first.
 - **zizmor** (MIT) — GitHub Actions workflows. Small scope, near-zero noise, and
   agent-written CI gets template injection wrong routinely.
 
+Two follow-ups this phase created, both deliberately deferred:
+
+- **Cross-tool secret dedup.** Making Trivy's `aws-access-key-id` and TruffleHog's
+  `AWS` collapse into one issue needs a secret rule-ID alias map plus dropping the
+  snippet from secret identity — a `scan.Fingerprint` change, and so a migration
+  once Phase 1 persists triage state. Worth doing before persistence lands, for
+  the same reason ADR 0006 landed dedup early.
+- **Git history as a `Target` kind.** `trufflehog git` finds credentials that were
+  committed and later deleted, which working-tree scanning cannot see. It belongs
+  with the Trivy `k8s` work as a new target shape, not as a flag on this adapter,
+  and it needs the same resource-identity answer: a finding in a deleted blob has
+  no current file path to key on.
+
 Cross-tool SAST dedup stays unsolved: two engines' rule IDs for "SQL injection"
 share no namespace to canonicalize onto. Deliberate — see ADR 0006. The Opengrep
-adapter therefore populates no `Aliases`, which is the one place that omission is
-correct rather than a bug.
+and TruffleHog adapters therefore populate no `Aliases`, which is the one place
+that omission is correct rather than a bug — a credential, like a SAST match, has
+no second published identifier.
 
 ## Phase 3 — Server and accounts
 

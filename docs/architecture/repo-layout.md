@@ -8,7 +8,8 @@ pindrop/
 │   ├── scan/             DOMAIN CORE: Finding, Scanner, Fingerprint
 │   │   ├── trivy/        Trivy adapter (subprocess)
 │   │   ├── osv/          OSV-Scanner adapter (subprocess)
-│   │   └── opengrep/     Opengrep adapter (subprocess) + rules/, go:embed'd
+│   │   ├── opengrep/     Opengrep adapter (subprocess) + rules/, go:embed'd
+│   │   └── trufflehog/   TruffleHog adapter (subprocess; AGPL, never import)
 │   ├── report/           renderers: table, json, sarif
 │   ├── httpapi/          serve: SPA + read-only JSON API
 │   └── buildinfo/        version identity
@@ -21,7 +22,7 @@ pindrop/
 
 ```
 cmd/pindrop
-    └── internal/cli ──────────┬── internal/scan ◄── internal/scan/{trivy,osv,opengrep}
+    └── internal/cli ──────────┬── internal/scan ◄── internal/scan/{trivy,osv,opengrep,trufflehog}
                                ├── internal/report ──┘
                                ├── internal/httpapi
                                └── web (embed)

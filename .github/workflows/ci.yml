@@ -20,6 +20,9 @@ env:
   # Keep in step with mise.toml and the Makefile — see
   # docs/decisions/0005-mise-optional.md.
   TRIVY_VERSION: "v0.72.0"
+  # Keep in step with the Makefile, and with the version the golden fixture at
+  # internal/scan/trufflehog/testdata was captured from.
+  TRUFFLEHOG_VERSION: "v3.96.0"
 
 jobs:
   go:
@@ -116,6 +119,21 @@ jobs:
             | sh -s -- -b /usr/local/bin ${{ env.TRIVY_VERSION }}
           trivy --version
 
+      # Installed, unlike OSV-Scanner and Opengrep, because the secrets adapter
+      # would otherwise ship with no end-to-end coverage at all: it is the only
+      # adapter whose output is derived from a digest rather than copied from the
+      # tool, so "does it actually produce findings" is not something the unit
+      # tests can answer.
+      #
+      # Note this runs unverified. Turning on --verify-secrets in CI would send
+      # the fixture's credentials to third-party APIs on every push, which is
+      # exactly what ADR 0008 makes opt-in.
+      - name: Install TruffleHog
+        run: |
+          curl -sfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh \
+            | sh -s -- -b /usr/local/bin ${{ env.TRUFFLEHOG_VERSION }}
+          trufflehog --version
+
       - name: Build full binary
         run: |
           pnpm --dir web install --frozen-lockfile
@@ -126,6 +144,39 @@ jobs:
           ./bin/pindrop scan ./testdata/vulnerable-app
           ./bin/pindrop scan ./testdata/vulnerable-app --format json --out /tmp/report.json
           ./bin/pindrop scan ./testdata/vulnerable-app --format sarif --out /tmp/report.sarif
+
+      # The fixture contains no detectable credential by design, so the step above
+      # never exercises the secrets path. This one does, against credentials
+      # generated into a temp directory and destroyed with it.
+      #
+      # Two assertions, and the second is the one that matters: findings must
+      # appear at all, and no plaintext may reach the report. The adapter derives
+      # its snippet from a digest rather than copying the tool's output, so
+      # "did a secret leak into the JSON" is not a question the unit tests can
+      # answer about a real run.
+      - name: Secrets path must find credentials and leak none
+        run: |
+          make run-scan-secrets | tee /tmp/secrets.out
+          grep -q 'category: secret\|secret ' /tmp/secrets.out \
+            || { echo "expected secret findings"; cat /tmp/secrets.out; exit 1; }
+
+          dir=$(mktemp -d)
+          key="AKIA$(LC_ALL=C tr -dc 'A-Z0-9' </dev/urandom | head -c 16)"
+          printf 'AWS_ACCESS_KEY_ID=%s\n' "$key" >"$dir/.env"
+          printf 'GITHUB_TOKEN=ghp_%s\n' \
+            "$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 36)" >>"$dir/.env"
+
+          ./bin/pindrop scan "$dir" --format json --out /tmp/secrets.json
+          test "$(jq '[.findings[]|select(.category=="secret")]|length' /tmp/secrets.json)" -gt 0
+
+          # The digest must have replaced the credential, not accompanied it.
+          if grep -qF "$key" /tmp/secrets.json; then
+            echo "plaintext credential reached the report"; exit 1
+          fi
+          jq -e '[.findings[]|select(.scanner=="trufflehog")
+                 |select(.location.snippet|startswith("sha256:"))]|length > 0' \
+            /tmp/secrets.json >/dev/null
+          rm -rf "$dir"
 
       - name: Fingerprints must be stable across runs
         run: |
@@ -158,10 +209,11 @@ jobs:
           if ./bin/pindrop scan ./testdata/vulnerable-app \
                --trivy-binary definitely-not-installed \
                --osv-binary definitely-not-installed \
-               --opengrep-binary definitely-not-installed 2>/tmp/err; then
+               --opengrep-binary definitely-not-installed \
+               --trufflehog-binary definitely-not-installed 2>/tmp/err; then
             echo "expected a non-zero exit"; exit 1
           fi
-          for hint in "Install Trivy" "Install OSV-Scanner" "Install Opengrep"; do
+          for hint in "Install Trivy" "Install OSV-Scanner" "Install Opengrep" "Install TruffleHog"; do
             grep -q "$hint" /tmp/err || { echo "missing install hint: $hint"; cat /tmp/err; exit 1; }
           done
 
@@ -173,6 +225,7 @@ jobs:
         run: |
           ./bin/pindrop scan ./testdata/vulnerable-app \
             --osv-binary definitely-not-installed \
-            --opengrep-binary definitely-not-installed >/dev/null 2>/tmp/warn
+            --opengrep-binary definitely-not-installed \
+            --trufflehog-binary definitely-not-installed >/dev/null 2>/tmp/warn
           grep -q "Skipping unavailable scanners" /tmp/warn \
             || { echo "expected a skip warning:"; cat /tmp/warn; exit 1; }

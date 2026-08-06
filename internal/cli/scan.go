@@ -16,6 +16,7 @@ import (
 	"github.com/AnimeshRy/pindrop/internal/scan/opengrep"
 	"github.com/AnimeshRy/pindrop/internal/scan/osv"
 	"github.com/AnimeshRy/pindrop/internal/scan/trivy"
+	"github.com/AnimeshRy/pindrop/internal/scan/trufflehog"
 )
 
 // defaultTableLimit caps the terminal table by default.
@@ -39,6 +40,10 @@ type scanOptions struct {
 	opengrepRules  []string
 	cacheDir       string
 	callAnalysis   bool
+
+	trufflehogBinary       string
+	trufflehogExcludePaths []string
+	verifySecrets          bool
 }
 
 func newScanCommand(g *globals) *cobra.Command {
@@ -84,6 +89,16 @@ directory.`),
 		"path to the Opengrep executable")
 	f.StringSliceVar(&opts.opengrepRules, "opengrep-rules", nil,
 		"rule file, directory, or registry name to use instead of the bundled ruleset")
+	f.StringVar(&opts.trufflehogBinary, "trufflehog-binary", "trufflehog",
+		"path to the TruffleHog executable")
+	f.StringSliceVar(&opts.trufflehogExcludePaths, "trufflehog-exclude-paths", nil,
+		"additional path regexes for TruffleHog to skip, on top of the built-in set")
+	// This flag is the last point of disclosure before the user's own credentials
+	// leave the machine, so the help text says so rather than describing the
+	// feature. See docs/decisions/0008-trufflehog-verification-opt-in.md.
+	f.BoolVar(&opts.verifySecrets, "verify-secrets", false,
+		"ask each provider whether a discovered secret is live; SENDS the secrets "+
+			"it finds to third-party APIs")
 	f.BoolVar(&opts.callAnalysis, "call-analysis", false,
 		"enable OSV-Scanner reachability analysis (slower; compiles the target)")
 	f.StringVar(&opts.cacheDir, "cache-dir", "",
@@ -127,6 +142,11 @@ func runScan(ctx context.Context, g *globals, opts *scanOptions, path string) er
 		opengrep.New(
 			opengrep.WithBinary(opts.opengrepBinary),
 			opengrep.WithRules(opts.opengrepRules...),
+		),
+		trufflehog.New(
+			trufflehog.WithBinary(opts.trufflehogBinary),
+			trufflehog.WithVerification(opts.verifySecrets),
+			trufflehog.WithExcludePaths(opts.trufflehogExcludePaths...),
 		),
 	}
 

@@ -17,6 +17,7 @@ next person re-walking the same path.
 | [0005](0005-mise-optional.md) | mise as an optional layer, not a build dependency | Accepted |
 | [0006](0006-canonical-identity-before-dedup.md) | Canonicalize advisory IDs and package coordinates before fingerprinting | Accepted |
 | [0007](0007-first-party-opengrep-rules.md) | Ship our own Opengrep rules; bundle none from any registry | Accepted |
+| [0008](0008-trufflehog-verification-opt-in.md) | TruffleHog secret verification is off by default and opt-in | Accepted |
 
 ## Format
 

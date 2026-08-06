@@ -39,3 +39,7 @@ mise.local.toml
 !.vscode/extensions.json
 
 chiko.md
+
+
+.cursor/
+.claude/

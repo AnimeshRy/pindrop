@@ -37,6 +37,9 @@ GOFUMPT_VERSION       := v0.11.0
 TRIVY_VERSION         := v0.72.0
 OSV_SCANNER_VERSION   := v2.4.0
 OPENGREP_VERSION      := v1.26.0
+# Must match the version internal/scan/trufflehog/testdata/report.jsonl was
+# captured from — see that directory's README. Bump both together.
+TRUFFLEHOG_VERSION    := v3.96.0
 
 # golangci-lint refuses to analyze a module whose `go` directive is newer than
 # the Go release it was itself built with, and its published module targets an
@@ -61,6 +64,7 @@ GOFUMPT       := $(or $(call mise_tool,gofumpt),$(BIN)/gofumpt)
 TRIVY         := $(or $(call mise_tool,trivy),$(BIN)/trivy)
 OSV_SCANNER   := $(or $(call mise_tool,osv-scanner),$(BIN)/osv-scanner)
 OPENGREP      := $(or $(call mise_tool,opengrep),$(BIN)/opengrep)
+TRUFFLEHOG    := $(or $(call mise_tool,trufflehog),$(BIN)/trufflehog)
 
 PNPM := pnpm --dir web
 
@@ -75,7 +79,7 @@ help: ## Show this help
 ##@ Setup
 
 .PHONY: setup
-setup: tools trivy osv-scanner opengrep web-install ## Install everything needed to build and run
+setup: tools trivy osv-scanner opengrep trufflehog web-install ## Install everything needed to build and run
 	@echo
 	@echo "Setup complete. Try: ./bin/pindrop scan ."
 
@@ -90,6 +94,9 @@ osv-scanner: $(OSV_SCANNER) ## Install the pinned OSV-Scanner release into ./bin
 
 .PHONY: opengrep
 opengrep: $(OPENGREP) ## Install the pinned Opengrep release into ./bin
+
+.PHONY: trufflehog
+trufflehog: $(TRUFFLEHOG) ## Install the pinned TruffleHog release into ./bin
 
 # pindrop looks for trivy on PATH and then beside its own binary, so installing
 # here is enough — ./bin does not need to be on PATH.
@@ -140,6 +147,19 @@ $(BIN)/opengrep:
 	  https://github.com/opengrep/opengrep/releases/download/$(OPENGREP_VERSION)/$$asset; \
 	chmod +x $(BIN)/opengrep
 	@$(BIN)/opengrep --version | head -1
+
+# TruffleHog ships an install script with the same `-b BINDIR <TAG>` interface as
+# Trivy's, so this is the Trivy rule with the URL changed.
+#
+# Deliberately not `go install`, even though TruffleHog is a Go program and
+# osv-scanner above is installed that way: TruffleHog is AGPL-3.0. Keeping it out
+# of the module graph entirely means nobody can later move it into a tools file
+# and place this codebase under AGPL. See docs/architecture/scanners.md.
+$(BIN)/trufflehog:
+	@mkdir -p $(BIN)
+	curl -sfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh \
+		| sh -s -- -b $(CURDIR)/$(BIN) $(TRUFFLEHOG_VERSION)
+	@$(BIN)/trufflehog --version 2>&1 | head -1
 
 .PHONY: mise
 mise: ## Install the optional mise-managed toolchain (see mise.toml)
@@ -221,6 +241,38 @@ check: lint test ## Run linters and tests
 run-scan: build-go ## Scan the sample vulnerable app
 	./$(BINARY) scan ./testdata/vulnerable-app
 
+# Exercises the secrets adapter, which `run-scan` cannot: the bundled fixture
+# deliberately contains no detectable credential, so TruffleHog reports 0 against
+# it. See testdata/vulnerable-app/README.md for why that is the right trade.
+#
+# The credentials are generated at run time into a temporary directory outside the
+# repository and removed on exit. They are assembled from fragments rather than
+# written as literals for a specific reason: a complete credential-shaped string in
+# any tracked file — including this Makefile — would be found by Pindrop's own scan
+# of itself, which is exactly the outcome the fixture README refuses. "AKIA" and
+# "ghp_" on their own match nothing.
+#
+# Nothing here is or ever was a real credential, and no verification is performed,
+# so nothing leaves the machine. Never add --verify-secrets to this target.
+.PHONY: run-scan-secrets
+run-scan-secrets: build-go ## Scan a throwaway credential directory (the secrets path)
+	@set -eu; \
+	dir=$$(mktemp -d); \
+	trap 'rm -rf "$$dir"' EXIT INT TERM; \
+	rand() { LC_ALL=C tr -dc "$$1" </dev/urandom 2>/dev/null | head -c "$$2" || true; }; \
+	{ \
+	  printf 'AWS_ACCESS_KEY_ID=%s%s\n'  'AKIA' "$$(rand 'A-Z0-9' 16)"; \
+	  printf 'AWS_SECRET_ACCESS_KEY=%s\n'       "$$(rand 'A-Za-z0-9' 40)"; \
+	  printf 'GITHUB_TOKEN=%s%s\n'       'ghp_' "$$(rand 'A-Za-z0-9' 36)"; \
+	  printf 'DATABASE_URL=postgres://svc:%s@db.example.invalid:5432/app\n' \
+	                                            "$$(rand 'A-Za-z0-9' 16)"; \
+	} >"$$dir/.env"; \
+	openssl genrsa -out "$$dir/id_rsa" 2048 2>/dev/null || \
+	  echo "note: openssl unavailable, skipping the PrivateKey case"; \
+	echo "Throwaway credentials in $$dir (removed on exit). Nothing here is real."; \
+	echo; \
+	./$(BINARY) scan "$$dir"
+
 .PHONY: run-serve
 run-serve: build ## Scan the sample app and serve the dashboard
 	./$(BINARY) scan ./testdata/vulnerable-app --format json --out .pindrop/report.json
@@ -232,10 +284,10 @@ run-serve: build ## Scan the sample app and serve the dashboard
 clean: ## Remove build artifacts
 	rm -rf coverage.out .pindrop web/dist/assets web/dist/index.html
 	rm -f $(BINARY)
-	@echo "Kept ./bin tooling (trivy, golangci-lint). Use 'make clean-tools' to remove it."
+	@echo "Kept ./bin tooling (scanners, golangci-lint). Use 'make clean-tools' to remove it."
 
 .PHONY: clean-tools
-clean-tools: ## Remove installed Go tools and Trivy from ./bin
+clean-tools: ## Remove installed Go tools and scanner binaries from ./bin
 	rm -rf $(BIN)
 
 .PHONY: clean-all

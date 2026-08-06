@@ -8,7 +8,8 @@ needing a live project to point at.
 
 ## What it triggers
 
-Verified against Trivy v0.72.0, OSV-Scanner v2.4.0, and Opengrep v1.26.0:
+Verified against Trivy v0.72.0, OSV-Scanner v2.4.0, Opengrep v1.26.0, and
+TruffleHog v3.96.0:
 
 | File | Category | Findings |
 |------|----------|----------|
@@ -50,13 +51,23 @@ Secret scanning is deliberately **not** exercised by this fixture, and
 `.env.example` is not expected to produce a finding — the AWS key in it is the
 canonical value from AWS's own documentation, which scanners allowlist.
 
+This was re-verified when TruffleHog was added: it reports **zero** findings here,
+run directly and with no exclusions. Its AWS detector filters the canonical
+example key, and its Postgres detector filters the `localhost` DSN — the same
+detector does fire on a non-`localhost` host, so this is allowlisting rather than a
+gap. Do not "fix" this by making the credentials more realistic.
+
 Committing a realistic-looking credential to make the secret scanner fire would
 mean every future scan of the Pindrop repository reports a critical secret in
 its own test data. That is a bad trade for one integration assertion.
 
-Secret conversion is covered instead by the golden report at
+Secret conversion is covered instead by golden reports:
 `internal/scan/trivy/testdata/report.json`, which contains a real (redacted)
-`github-pat` detection captured from Trivy.
+`github-pat` detection captured from Trivy, and
+`internal/scan/trufflehog/testdata/report.jsonl`, captured from a scratch directory
+of fabricated credentials outside this repository with every secret-bearing field
+substituted. See that directory's `README.md` for why it cannot be a verbatim
+capture.
 
 ## Expect the CVE list to drift
 

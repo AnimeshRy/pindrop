@@ -31,8 +31,8 @@ it does; these say *why*.
 
 ## The one-paragraph version
 
-Pindrop runs existing security scanners (Trivy today; Gitleaks, Opengrep, and
-others later), normalizes their wildly different outputs into a single
+Pindrop runs existing security scanners (Trivy, OSV-Scanner, Opengrep, and
+TruffleHog today; more later), normalizes their wildly different outputs into a single
 [`scan.Finding`](../internal/scan/finding.go), gives each finding a **stable
 fingerprint** so it keeps its identity across scans, and ranks the result so a
 user reads eight lines instead of two thousand. The scanners are commodity. The

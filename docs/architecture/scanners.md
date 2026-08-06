@@ -71,7 +71,10 @@ Practical rules for subprocess adapters:
 4. `convert.go` — map into `scan.Finding`, including severity vocabulary.
 5. `testdata/report.json` — a **captured** golden report, so tests run without
    the tool installed. Note in the file which parts are captured and which, if
-   any, are derived.
+   any, are derived. A tool whose format cannot carry that note uses
+   `testdata/report.jsonl` plus a sibling `testdata/README.md` holding it — see
+   `trufflehog/testdata/`, where every line must decode as a finding and a
+   `_comment` key would decode as a blank one.
 6. Register it in the slice in `internal/cli/scan.go`. That is the only place
    outside the new package that changes.
 
@@ -89,7 +92,7 @@ Licensing constrains what we can do, and getting it wrong is expensive.
 | **Trivy** | Apache-2.0 | Go | **In use** | Subprocess. SCA, IaC, secrets, licenses in one invocation |
 | **OSV-Scanner** | Apache-2.0 | Go | **In use** | Second SCA opinion on a different advisory corpus, and the only free source of reachability — see below |
 | **Opengrep** | LGPL-2.1 | OCaml | **In use** | SAST, on rules we write ourselves. Preferred over Semgrep CE — see below |
-| **TruffleHog** | **AGPL-3.0** | Go | Phase 2 | Secrets, verified-only. **Subprocess only — never import** |
+| **TruffleHog** | **AGPL-3.0** | Go | **In use** | Secrets. **Subprocess only — never import.** Verification is opt-in ([ADR 0008](../decisions/0008-trufflehog-verification-opt-in.md)), so the default path overlaps Trivy — see below |
 | **zizmor** | MIT | Rust | Phase 2 | GitHub Actions workflows. Small scope, near-zero noise |
 | **Trivy `k8s`** | Apache-2.0 | Go | Phase 2 | EKS posture with no new adapter — a new `Target` kind |
 | **Kubescape** | Apache-2.0 | Go | Later | CNCF Incubating. Purpose-built K8s posture, if Trivy's proves thin |
@@ -101,18 +104,19 @@ Licensing constrains what we can do, and getting it wrong is expensive.
 | **OWASP Dependency-Check** | Apache-2.0 | Java | Skipped | Java-centric, slow, high false-positive rate |
 | **Bandit / gosec / Brakeman** | various | various | Skipped | Per-language; Opengrep subsumes them with one adapter |
 
-### Measured result of adding the second and third scanners
+### Measured result of adding the second, third, and fourth scanners
 
 On `testdata/vulnerable-app`:
 
-| | Trivy + OSV | + Opengrep |
-|---|---|---|
-| Trivy raw findings | 8 | 8 |
-| OSV-Scanner raw findings | 6 | 6 |
-| Opengrep raw findings | — | 11 |
-| Raw total | 14 | 25 |
-| **After `scan.Dedup`** | **8** | **19** |
-| Findings with `Agreement() == 2` | 4 | 4 |
+| | Trivy + OSV | + Opengrep | + TruffleHog |
+|---|---|---|---|
+| Trivy raw findings | 8 | 8 | 8 |
+| OSV-Scanner raw findings | 6 | 6 | 6 |
+| Opengrep raw findings | — | 11 | 11 |
+| TruffleHog raw findings | — | — | 0 |
+| Raw total | 14 | 25 | 25 |
+| **After `scan.Dedup`** | **8** | **19** | **19** |
+| Findings with `Agreement() == 2` | 4 | 4 | 4 |
 
 Adding an entire **second** scanner added **zero** net findings — its six raw
 findings all merged. Four vulnerabilities carry `Agreement() == 2`, which is new
@@ -139,6 +143,70 @@ the other has nothing to pair with. This is the documented degradation mode: a
 visible duplicate, never a wrong merge. It cannot be fixed by clustering aliases
 across findings without making identity depend on which scanners ran — see
 [ADR 0006](../decisions/0006-canonical-identity-before-dedup.md).
+
+### The fourth scanner: TruffleHog adds nothing measurable, and that is the finding
+
+TruffleHog reports **zero** findings on the fixture, so the table above does not
+move. That is not a bug in the adapter — it reports six findings against a scratch
+directory of fabricated credentials, and the pipeline is exercised by the golden
+fixture — it is the fixture's stated policy working as intended.
+`testdata/vulnerable-app/README.md` deliberately contains no detectable secret,
+and the two AWS values in its `.env.example` are the canonical ones from AWS's own
+documentation, which TruffleHog's AWS detector filters. Its `localhost` Postgres
+DSN is likewise filtered; the same detector fires on a non-`localhost` host.
+
+The number worth recording instead is the healthy-repo count, which is **zero**
+secrets across `internal/`, `cmd/`, `web/src/`, and zero across the whole
+repository including `.git/`. That is the precision measure for a scanner opening
+a new domain, and it holds because TruffleHog's detectors key on issuer-specific
+formats rather than on generic entropy.
+
+**The overlap with Trivy is real, structural rather than incidental, and now
+measured.** `make run-scan-secrets` generates five credentials into a throwaway
+directory and scans it, because the bundled fixture cannot exercise this path.
+The result:
+
+| | count |
+|---|---|
+| Distinct credentials planted | 5 |
+| Trivy raw findings | 4 |
+| TruffleHog raw findings | 4 |
+| **After `scan.Dedup`** | **8** |
+| Merged across tools | **0** |
+
+**Three of the five credentials are reported twice, and nothing merges.** Secret
+identity is rule ID + file path + normalized snippet, and the two tools disagree on
+two of those three inputs:
+
+| | Trivy | TruffleHog |
+|---|---|---|
+| `RuleID` | `aws-access-key-id` | `AWS` |
+| `Location.Snippet` | Trivy's own redacted `Match` | `sha256:` digest of the secret |
+
+Neither can coincide, so the duplicate rate is 1.0 for any credential both detect.
+Like the `CVE-2026-4800` case above, this is the documented degradation mode: a
+visible duplicate, never a wrong merge.
+
+The measurement also shows the two are **not** purely redundant, which is the
+argument for keeping both. Each found one credential the other missed: Trivy alone
+reported the standalone `AWS_SECRET_ACCESS_KEY` (TruffleHog folds it into the AWS
+finding's `RawV2` instead of reporting it separately), and TruffleHog alone reported
+the Postgres connection string, which Trivy has no rule for. So the honest summary
+is 5 credentials → 8 rows, of which 3 are noise and 2 are coverage neither tool
+provides on its own.
+
+Re-run `make run-scan-secrets` after touching either secrets adapter; the count
+moving is the signal.
+
+One user-visible edge follows from it. Trivy grades most of its secret rules
+`CRITICAL` while an unverified TruffleHog finding is `high`, so the two rows for a
+single credential sort *apart* in the table rather than adjacently. That reads as a
+bug and is not one.
+
+Fixing it means canonicalizing secret rule IDs across engines and dropping the
+snippet from secret identity — a `scan.Fingerprint` change, and therefore a
+migration once Phase 1 persists triage state. It is the named follow-up in the
+roadmap and it is deliberately not done here.
 
 Worth noting the mechanism reproduced OSV-Scanner's own grouping for free:
 OSV reported five lodash advisories, which canonicalization collapsed to the same
@@ -235,17 +303,43 @@ lacks an access-logging tag".
 **TruffleHog is AGPL-3.0.** Running it as a separate process is fine — separate
 processes are not derivative works. Importing it as a Go library would place the
 entire Pindrop codebase under AGPL, which is incompatible with the commercial
-plan. This must never happen by accident.
+plan. This must never happen by accident. It is also why the Makefile installs it
+from a pinned release rather than with `go install`, as it does for OSV-Scanner:
+keeping it out of the module graph entirely means nobody can move it into a tools
+file later.
 
-It is chosen over Gitleaks anyway, because its verifier modules make read-only API
-calls that prove whether a credential is **live** — the "12 secrets → 1 live key"
-row in the vision doc, and a signal no amount of correlation can synthesize from
-regex hits. Trivy already does regex-and-entropy secrets; a second regex engine
-adds matches, not information.
+It was chosen over Gitleaks because its verifier modules make read-only API calls
+that prove whether a credential is **live** — the "12 secrets → 1 live key" row in
+the vision doc, and a signal no amount of correlation can synthesize from regex
+hits.
 
-**Verification sends discovered secrets to third-party APIs.** That is a product
-decision, not an implementation detail: it must be opt-in and disclosed, and it
-needs its own ADR before the adapter ships.
+**That argument does not describe what Phase 0 actually ships, and the gap is
+worth being explicit about.** Verification is off by default
+([ADR 0008](../decisions/0008-trufflehog-verification-opt-in.md)), and the adapter
+uses the `filesystem` source rather than `git`, so by default it has neither of
+the two capabilities that distinguish it from Trivy's built-in secret scanner: it
+does not prove liveness, and it does not see history. On the default path it *is*
+the second regex engine this section criticized Gitleaks for being — see the
+overlap analysis above for the measured consequence.
+
+Both capabilities are retained rather than foreclosed, which is the reason the
+choice still stands: verification is one flag away, and history scanning is a
+future `Target` kind. Choosing Gitleaks instead would have foreclosed the first
+permanently.
+
+**Verification sends discovered secrets to third-party APIs.** Settled by
+[ADR 0008](../decisions/0008-trufflehog-verification-opt-in.md): off by default,
+enabled per-invocation with `--verify-secrets`, whose help text names the egress
+rather than the feature. Relatedly, the plaintext credential never reaches a
+`scan.Finding` — `Raw`, `RawV2`, and `SecretParts` are read to derive an identity
+digest and discarded, because a report is written to disk and served over HTTP.
+
+**Do not pass TruffleHog `--fail`, and do pass `--no-update`.** Without
+`--no-update` it downloads and re-execs a newer build of itself mid-scan, so the
+pinned version is not the version that ran. With `--fail`, findings exit 183 and
+"the code has secrets" becomes indistinguishable from "the tool broke" — omitting
+it buys the property `--exit-code 0` buys for Trivy. Both are asserted in
+`TestArgs` rather than left to a comment.
 
 **Semgrep's rule registry is not open source.** Semgrep CE itself is LGPL, but
 the registry rules moved to a restrictive license that prohibits building
@@ -341,3 +435,34 @@ rather than for finding defects.
 Note that `metadata.confidence`, `likelihood`, and `impact` use a *third* scale
 (`LOW`/`MEDIUM`/`HIGH`) that is not interchangeable with severity. Only
 `confidence` is read, and only to drop self-declared low-confidence rules.
+
+**TruffleHog reports no severity at all, so the adapter derives one from evidence.**
+There is nothing to map: the records carry `Verified` and `VerificationError` and
+nothing else that grades impact. `trufflehog/convert.go` needs a third input the
+records cannot express — whether verification was *requested* — because with
+`--no-verification` every record is `Verified: false` with no `VerificationError`,
+which is byte-identical to "the issuer was asked and said this key is not live".
+Those are very different strengths of evidence.
+
+| Verification requested | `Verified` | `VerificationError` | `scan.Severity` |
+|---|---|---|---|
+| no | (false) | (absent) | `high` |
+| yes | `true` | any | `critical` |
+| yes | `false` | non-empty | `high` |
+| yes | `false` | absent | `medium` |
+
+Nothing maps to `unknown` here, which is the one departure from the rule above.
+`unknown` means "a vocabulary we failed to parse"; this value is absent by design
+and its absence has a known meaning. `unknown` also ranks 0, so using it would
+sort every secret below every informational finding — burying the category the
+adapter exists to add.
+
+The default path is `high` rather than `critical` deliberately, so that enabling
+verification is a visible promotion in the output rather than only in the logs.
+Verification failing grades the same as never asking, because its evidentiary
+state is identical — grading it lower would let a rate-limited API silently
+downgrade every real token in a report, a failure that appears only under load.
+
+One consequence to release-note: because unverified secrets grade `high`, anyone
+running `--fail-on high` in CI starts failing on a repository containing a
+secret-shaped placeholder that previously went unreported.
