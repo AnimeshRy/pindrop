@@ -146,31 +146,37 @@ func runScan(ctx context.Context, g *globals, opts *scanOptions, path string) er
 		slog.Warn("some scanners failed", "error", scanErr)
 	}
 
+	// Merge first, then cut. NewDocument is where cross-tool deduplication
+	// happens, and both the severity filter and --fail-on must see merged
+	// findings: filtering the raw per-scanner results discards one tool's copy of
+	// a jointly-reported issue before the merge, which makes the survivor claim
+	// only one scanner found it. See scan.FilterBySeverity.
+	doc := report.NewDocument(results)
 	if minSeverity != "" {
-		results = filterBySeverity(results, minSeverity)
+		doc.Findings = scan.FilterBySeverity(doc.Findings, minSeverity)
 	}
 
-	if err := writeReport(results, format, opts, g); err != nil {
+	if err := writeReport(doc, format, opts, g); err != nil {
 		return err
 	}
 
 	if failOn != "" {
-		if worst, ok := exceedsThreshold(results, failOn); ok {
+		if worst, ok := exceedsThreshold(doc.Findings, failOn); ok {
 			return fmt.Errorf("found %s findings at or above --fail-on=%s", worst, failOn)
 		}
 	}
 	return nil
 }
 
-// writeReport renders results to the configured destination.
-func writeReport(results []scan.Result, format report.Format, opts *scanOptions, g *globals) error {
+// writeReport renders doc to the configured destination.
+func writeReport(doc report.Document, format report.Format, opts *scanOptions, g *globals) error {
 	renderOpts := report.Options{
 		Color: g.color(),
 		Limit: opts.limit,
 	}
 
 	if opts.out == "" {
-		return report.Write(os.Stdout, format, results, renderOpts)
+		return report.Write(os.Stdout, format, doc, renderOpts)
 	}
 
 	// A report written to a file is read later by a machine or a different
@@ -192,7 +198,7 @@ func writeReport(results []scan.Result, format report.Format, opts *scanOptions,
 	// so that a failed flush is reported rather than swallowed.
 	defer func() { _ = f.Close() }()
 
-	if err := report.Write(f, format, results, renderOpts); err != nil {
+	if err := report.Write(f, format, doc, renderOpts); err != nil {
 		return err
 	}
 	if err := f.Close(); err != nil {
@@ -247,30 +253,15 @@ func parseOptionalSeverity(value, flagName string) (scan.Severity, error) {
 	return sev, nil
 }
 
-// filterBySeverity drops findings ranked below min.
-func filterBySeverity(results []scan.Result, min scan.Severity) []scan.Result {
-	filtered := make([]scan.Result, 0, len(results))
-	for _, r := range results {
-		kept := make([]scan.Finding, 0, len(r.Findings))
-		for _, f := range r.Findings {
-			if f.Severity.Rank() >= min.Rank() {
-				kept = append(kept, f)
-			}
-		}
-		r.Findings = kept
-		filtered = append(filtered, r)
-	}
-	return filtered
-}
-
 // exceedsThreshold reports the most severe finding at or above threshold.
-func exceedsThreshold(results []scan.Result, threshold scan.Severity) (scan.Severity, bool) {
+//
+// It takes merged findings, so a finding two scanners reported is counted once
+// rather than tipping a build over the threshold twice.
+func exceedsThreshold(findings []scan.Finding, threshold scan.Severity) (scan.Severity, bool) {
 	worst, found := scan.SeverityUnknown, false
-	for _, r := range results {
-		for _, f := range r.Findings {
-			if f.Severity.Rank() >= threshold.Rank() && f.Severity.Rank() >= worst.Rank() {
-				worst, found = f.Severity, true
-			}
+	for _, f := range findings {
+		if f.Severity.Rank() >= threshold.Rank() && f.Severity.Rank() >= worst.Rank() {
+			worst, found = f.Severity, true
 		}
 	}
 	return worst, found

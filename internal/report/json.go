@@ -28,9 +28,9 @@ type Document struct {
 	// Scans records one entry per scanner that ran, with its timing.
 	Scans []ScanSummary `json:"scans"`
 
-	// Findings is the flattened, severity-ordered set across all scanners.
-	// It is never null: a clean scan produces an empty array, so consumers do
-	// not need a null check.
+	// Findings is the merged, severity-ordered set across all scanners: one
+	// entry per issue, not per scanner report. It is never null — a clean scan
+	// produces an empty array, so consumers do not need a null check.
 	Findings []scan.Finding `json:"findings"`
 }
 
@@ -42,11 +42,18 @@ type Tool struct {
 
 // ScanSummary is the per-scanner metadata for one run.
 type ScanSummary struct {
-	Scanner    string    `json:"scanner"`
-	Target     string    `json:"target"`
-	StartedAt  time.Time `json:"startedAt"`
-	DurationMS int64     `json:"durationMs"`
-	Findings   int       `json:"findings"`
+	Scanner   string    `json:"scanner"`
+	Target    string    `json:"target"`
+	StartedAt time.Time `json:"startedAt"`
+
+	DurationMS int64 `json:"durationMs"`
+
+	// Findings is how many findings this scanner reported on its own, before
+	// cross-tool merging and before any severity filter. It therefore does not
+	// sum to len(Document.Findings), and is not meant to: the gap between the
+	// two is the whole point. Two scanners reporting 8 and 6 against 8 merged
+	// issues is the product working.
+	Findings int `json:"findings"`
 }
 
 // NewDocument assembles a [Document] from raw scan results.
@@ -76,17 +83,23 @@ func NewDocument(results []scan.Result) Document {
 	}
 }
 
-// JSON writes results as a [Document], indented for readability. Pindrop
-// reports get committed to repositories and diffed in pull requests, so the
-// extra bytes buy more than they cost.
-func JSON(w io.Writer, results []scan.Result) error {
+// JSON writes doc, indented for readability. Pindrop reports get committed to
+// repositories and diffed in pull requests, so the extra bytes buy more than they
+// cost.
+func JSON(w io.Writer, doc Document) error {
+	// A caller that filtered the findings down to nothing can leave a nil slice
+	// here, and the schema promises an array.
+	if doc.Findings == nil {
+		doc.Findings = []scan.Finding{}
+	}
+
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	// Findings can contain code snippets with characters that would otherwise
 	// be escaped into unreadable \u sequences.
 	enc.SetEscapeHTML(false)
 
-	if err := enc.Encode(NewDocument(results)); err != nil {
+	if err := enc.Encode(doc); err != nil {
 		return fmt.Errorf("writing JSON report: %w", err)
 	}
 	return nil

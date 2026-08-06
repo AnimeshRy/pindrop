@@ -94,6 +94,24 @@ func Usable(ctx context.Context, scanners []Scanner) ([]Scanner, error) {
 	return usable, errors.Join(errs...)
 }
 
+// FilterBySeverity drops findings ranked below min.
+//
+// It takes merged findings rather than raw results on purpose. Filtering before
+// [Dedup] silently corrupts the confidence signal: when two tools grade one
+// problem differently — routine, since vendors disagree — a threshold above the
+// lower grade discards that tool's copy before merging, and the surviving finding
+// then claims one scanner reported it when two did. Rank, then cut, and only ever
+// in that order.
+func FilterBySeverity(findings []Finding, min Severity) []Finding {
+	kept := make([]Finding, 0, len(findings))
+	for _, f := range findings {
+		if f.Severity.Rank() >= min.Rank() {
+			kept = append(kept, f)
+		}
+	}
+	return kept
+}
+
 // Findings flattens results into a single slice, merges cross-tool duplicates,
 // and sorts for presentation: most severe first, then by path, then by line, then
 // by rule. The ordering is total and deterministic, so identical scans render

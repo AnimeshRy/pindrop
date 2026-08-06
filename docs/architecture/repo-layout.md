@@ -5,6 +5,7 @@ pindrop/
 ├── cmd/pindrop/          main; run() pattern, single os.Exit
 ├── internal/
 │   ├── cli/              cobra commands — the composition root
+│   ├── auth/             Supabase JWT verification (cloud mode)
 │   ├── scan/             DOMAIN CORE: Finding, Scanner, Fingerprint
 │   │   └── trivy/        Trivy adapter (subprocess)
 │   ├── report/           renderers: table, json, sarif
@@ -20,6 +21,7 @@ pindrop/
 ```
 cmd/pindrop
     └── internal/cli ──────────┬── internal/scan ◄── internal/scan/trivy
+                               ├── internal/auth
                                ├── internal/report ──┘
                                ├── internal/httpapi
                                └── web (embed)
@@ -80,6 +82,7 @@ acquire fields that exist only to satisfy an output format.
 | An output format | `internal/report/` | `Format` consts and `Write` |
 | A CLI command | `internal/cli/` | `root.go` `AddCommand` |
 | An API route | `internal/httpapi/server.go` | `routes()` |
+| Cloud auth / JWT checks | `internal/auth/` | wire verifier in `internal/cli/serve.go` |
 | A finding field | `internal/scan/finding.go` | consider the fingerprint impact |
 | A dashboard page | `web/src/routes/` | routes are file-based |
 

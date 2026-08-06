@@ -71,14 +71,14 @@ func (ew *errWriter) printf(format string, args ...any) {
 	_, ew.err = fmt.Fprintf(ew.w, format, args...)
 }
 
-// Table renders results as an aligned, severity-ordered table followed by a
-// summary line.
+// Table renders doc as an aligned, severity-ordered table followed by a summary
+// line.
 //
 // The ordering is deliberate: the whole point of the product is that a user
-// reads the top of this list and stops. Findings are sorted most severe first
-// by [scan.Findings].
-func Table(w io.Writer, results []scan.Result, opts Options) error {
-	findings := scan.Findings(results)
+// reads the top of this list and stops. Findings arrive already merged and sorted
+// most severe first, from [NewDocument].
+func Table(w io.Writer, doc Document, opts Options) error {
+	findings := doc.Findings
 
 	ew := &errWriter{w: w}
 	if len(findings) == 0 {
@@ -100,7 +100,7 @@ func Table(w io.Writer, results []scan.Result, opts Options) error {
 			fmt.Sprintf("  ... and %d more (use --limit 0 to show all)", hidden)))
 	}
 
-	writeSummary(ew, results, findings, opts)
+	writeSummary(ew, doc.Scans, findings, opts)
 	return ew.err
 }
 
@@ -132,7 +132,7 @@ func writeRows(w io.Writer, findings []scan.Finding, opts Options) error {
 }
 
 // writeSummary prints the trailing counts and timing lines.
-func writeSummary(ew *errWriter, results []scan.Result, findings []scan.Finding, opts Options) {
+func writeSummary(ew *errWriter, scans []ScanSummary, findings []scan.Finding, opts Options) {
 	counts := make(map[scan.Severity]int, len(displayOrder))
 	for _, f := range findings {
 		counts[f.Severity]++
@@ -150,9 +150,12 @@ func writeSummary(ew *errWriter, results []scan.Result, findings []scan.Finding,
 		strings.Join(parts, "  "),
 	)
 
-	for _, r := range results {
+	for _, s := range scans {
+		// The summary carries whole milliseconds, which is all this line shows
+		// anyway — it rounds to timeRounding.
+		elapsed := time.Duration(s.DurationMS) * time.Millisecond
 		ew.printf("%s\n", paint(opts, ansiDim, fmt.Sprintf("  %s scanned %s in %s",
-			r.Scanner, r.Target.Path, r.Duration.Round(timeRounding))))
+			s.Scanner, s.Target, elapsed.Round(timeRounding))))
 	}
 }
 

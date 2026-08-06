@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-
-	"github.com/AnimeshRy/pindrop/internal/scan"
 )
 
 // Format identifies an output encoding.
@@ -60,15 +58,21 @@ type Options struct {
 	Limit int
 }
 
-// Write renders results to w in the given format.
-func Write(w io.Writer, format Format, results []scan.Result, opts Options) error {
+// Write renders doc to w in the given format.
+//
+// Renderers take a prepared [Document] rather than raw results so that
+// deduplication happens exactly once, in [NewDocument], before any caller filters
+// or ranks. When each renderer merged for itself, a caller that wanted to filter
+// had no merged list to filter — and filtering the raw per-scanner results
+// understates how many tools agreed. See scan.FilterBySeverity.
+func Write(w io.Writer, format Format, doc Document, opts Options) error {
 	switch format {
 	case FormatTable:
-		return Table(w, results, opts)
+		return Table(w, doc, opts)
 	case FormatJSON:
-		return JSON(w, results)
+		return JSON(w, doc)
 	case FormatSARIF:
-		return SARIF(w, results)
+		return SARIF(w, doc)
 	default:
 		return fmt.Errorf("unknown format %q", format)
 	}

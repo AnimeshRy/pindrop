@@ -87,10 +87,24 @@ func relativePath(sourcePath, root string) string {
 	}
 
 	rel, err := filepath.Rel(absRoot, sourcePath)
-	if err != nil || strings.HasPrefix(rel, "..") {
+	if err != nil || escapesBase(rel) {
 		return filepath.ToSlash(filepath.Clean(sourcePath))
 	}
 	return filepath.ToSlash(rel)
+}
+
+// escapesBase reports whether a relative path climbs out of the directory it was
+// computed against.
+//
+// The test is on the first path *component*, not on the string prefix: a
+// directory legitimately named "..config" starts with ".." without escaping
+// anything, and treating it as an escape would leave every finding beneath it
+// keyed by an absolute path.
+//
+// rel comes straight from [filepath.Rel], so it is still OS-separated here —
+// compare against [filepath.Separator] rather than a hardcoded slash.
+func escapesBase(rel string) bool {
+	return rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }
 
 // groupSeverity finds the severity of the group containing id.

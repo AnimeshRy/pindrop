@@ -1,6 +1,7 @@
 package httpapi_test
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -71,6 +72,118 @@ func get(t *testing.T, srv *httpapi.Server, target string) *httptest.ResponseRec
 	rec := httptest.NewRecorder()
 	srv.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, target, nil))
 	return rec
+}
+
+type stubVerifier struct {
+	user httpapi.UserIdentity
+	err  error
+}
+
+func (s stubVerifier) Verify(_ context.Context, token string) (httpapi.UserIdentity, error) {
+	if s.err != nil {
+		return httpapi.UserIdentity{}, s.err
+	}
+	if token != "good-token" {
+		return httpapi.UserIdentity{}, errors.New("bad token")
+	}
+	if s.user.Subject != "" {
+		return s.user, nil
+	}
+	return httpapi.UserIdentity{Subject: "user-1", Email: "a@b.com", Name: "Ada"}, nil
+}
+
+func TestConfigSelfHosted(t *testing.T) {
+	t.Parallel()
+
+	srv := newTestServer(t, httpapi.Config{Source: stubSource{doc: testDocument()}})
+	rec := get(t, srv, "/api/v1/config")
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("Unmarshal() error = %v", err)
+	}
+	if body["mode"] != "self-hosted" {
+		t.Errorf("mode = %v, want self-hosted", body["mode"])
+	}
+	if _, ok := body["supabaseUrl"]; ok {
+		t.Error("self-hosted config must not expose supabaseUrl")
+	}
+}
+
+func TestConfigCloud(t *testing.T) {
+	t.Parallel()
+
+	srv := newTestServer(t, httpapi.Config{
+		Source:         stubSource{doc: testDocument()},
+		Mode:           httpapi.ModeCloud,
+		SupabaseURL:    "https://example.supabase.co",
+		PublishableKey: "sb_publishable_test",
+	})
+	rec := get(t, srv, "/api/v1/config")
+
+	var body map[string]string
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("Unmarshal() error = %v", err)
+	}
+	if body["mode"] != "cloud" {
+		t.Errorf("mode = %q, want cloud", body["mode"])
+	}
+	if body["supabaseUrl"] != "https://example.supabase.co" {
+		t.Errorf("supabaseUrl = %q, want example URL", body["supabaseUrl"])
+	}
+}
+
+func TestFindingsRequiresAuthInCloudMode(t *testing.T) {
+	t.Parallel()
+
+	srv := newTestServer(t, httpapi.Config{
+		Source:   stubSource{doc: testDocument()},
+		Mode:     httpapi.ModeCloud,
+		Verifier: stubVerifier{},
+	})
+
+	rec := get(t, srv, "/api/v1/findings")
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusUnauthorized)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/findings", nil)
+	req.Header.Set("Authorization", "Bearer good-token")
+	rec = httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("authorized status = %d, want %d", rec.Code, http.StatusOK)
+	}
+}
+
+func TestMe(t *testing.T) {
+	t.Parallel()
+
+	srv := newTestServer(t, httpapi.Config{
+		Source:   stubSource{doc: testDocument()},
+		Verifier: stubVerifier{user: httpapi.UserIdentity{Subject: "u1", Name: "Ada"}},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.Header.Set("Authorization", "Bearer good-token")
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+
+	var body httpapi.UserIdentity
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("Unmarshal() error = %v", err)
+	}
+	if body.Name != "Ada" {
+		t.Errorf("Name = %q, want Ada", body.Name)
+	}
 }
 
 func TestNewRequiresSource(t *testing.T) {

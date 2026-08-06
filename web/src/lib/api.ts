@@ -6,6 +6,8 @@
  * schema they should be generated instead.
  */
 
+import { getAccessToken, notifyUnauthorized } from '@/lib/auth-token'
+
 export const SEVERITIES = [
   'critical',
   'high',
@@ -105,9 +107,17 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string): Promise<T> {
-  const response = await fetch(path, {
-    headers: { Accept: 'application/json' },
-  })
+  const headers: Record<string, string> = { Accept: 'application/json' }
+  const token = getAccessToken()
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  const response = await fetch(path, { headers })
+
+  if (response.status === 401) {
+    notifyUnauthorized()
+  }
 
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => null)

@@ -1,6 +1,7 @@
 package scan
 
 import (
+	"slices"
 	"sort"
 	"strings"
 )
@@ -127,14 +128,19 @@ func mergeFinding(a, b Finding) Finding {
 		a.Package = b.Package
 	}
 
-	a.Aliases = append(a.Aliases, b.Aliases...)
+	// slices.Concat rather than append, because a and b are copies whose slice
+	// headers still point at the caller's backing arrays. Appending would write
+	// past the length of a slice Pindrop does not own, corrupting whatever else
+	// shares that array. Concat always allocates.
+	extra := b.Aliases
 	// b's own rule ID is an alias from a's point of view whenever the two tools
 	// used different identifier namespaces for one advisory. Recording it keeps
 	// the cross-reference visible to the user and to any later scan.
 	if !strings.EqualFold(a.RuleID, b.RuleID) && b.RuleID != "" {
-		a.Aliases = append(a.Aliases, b.RuleID)
+		extra = slices.Concat(extra, []string{b.RuleID})
 	}
-	a.References = append(a.References, b.References...)
+	a.Aliases = slices.Concat(a.Aliases, extra)
+	a.References = slices.Concat(a.References, b.References)
 
 	return a
 }

@@ -37,6 +37,20 @@ type Config struct {
 
 	// Source supplies findings. Required.
 	Source FindingSource
+
+	// Mode selects self-hosted (open API) or cloud (Supabase-protected API).
+	Mode Mode
+
+	// SupabaseURL is the project URL, e.g. https://xyz.supabase.co. Required in
+	// cloud mode for /api/v1/config.
+	SupabaseURL string
+
+	// PublishableKey is the sb_publishable_… key for browser clients. Required
+	// in cloud mode for /api/v1/config.
+	PublishableKey string
+
+	// Verifier validates access tokens in cloud mode. Nil in self-hosted mode.
+	Verifier TokenVerifier
 }
 
 // Server routes dashboard and API requests.
@@ -64,13 +78,41 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // later, which is why no third-party router is needed.
 func (s *Server) routes(cfg Config) {
 	s.mux.HandleFunc("GET /api/v1/healthz", handleHealth)
-	s.mux.HandleFunc("GET /api/v1/findings", handleFindings(cfg.Source))
-	s.mux.HandleFunc("GET /api/v1/summary", handleSummary(cfg.Source))
+	s.mux.HandleFunc("GET /api/v1/config", handleConfig(cfg))
+	s.mux.HandleFunc("GET /api/v1/me", requireAuth(cfg.Verifier, handleMe))
+	s.mux.HandleFunc("GET /api/v1/findings", requireAuth(cfg.Verifier, handleFindings(cfg.Source)))
+	s.mux.HandleFunc("GET /api/v1/summary", requireAuth(cfg.Verifier, handleSummary(cfg.Source)))
 
 	// The catch-all must come last in specificity terms; ServeMux resolves by
 	// pattern precision rather than registration order, so /api/v1/... still
 	// wins over "/".
 	s.mux.Handle("GET /", spaHandler(cfg.Assets))
+}
+
+func handleConfig(cfg Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		mode := cfg.Mode
+		if mode == "" {
+			mode = ModeSelfHosted
+		}
+		payload := map[string]any{
+			"mode": string(mode),
+		}
+		if mode == ModeCloud {
+			payload["supabaseUrl"] = cfg.SupabaseURL
+			payload["publishableKey"] = cfg.PublishableKey
+		}
+		writeJSON(w, http.StatusOK, payload)
+	}
+}
+
+func handleMe(w http.ResponseWriter, r *http.Request) {
+	user, ok := UserFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, errors.New("not signed in"))
+		return
+	}
+	writeJSON(w, http.StatusOK, user)
 }
 
 func handleHealth(w http.ResponseWriter, _ *http.Request) {

@@ -85,8 +85,10 @@ Worth recording so nobody thinks they were oversights:
   Phase 1 cheap.
 - **No Gin.** A framework for one static-file route and three handlers is
   premature. Gin arrives in Phase 3 with a real API.
-- **No auth.** `serve` binds to `127.0.0.1` and serves local files. There is
-  nothing to authenticate yet, and a half-built auth layer is worse than none.
+- **Auth in cloud mode only.** Self-hosted `serve` binds to `127.0.0.1` and
+  keeps the API open. Cloud mode verifies Supabase ES256 access tokens on
+  `/api/v1/findings`, `/api/v1/summary`, and `/api/v1/me`. See
+  [ADR 0007](../decisions/0007-supabase-auth-cloud-mode.md).
 - **No `encoding/json/v2`.** Still experimental behind `GOEXPERIMENT=jsonv2` in
   Go 1.26; slated to become the default in 1.27. Revisit then.
 

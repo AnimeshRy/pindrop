@@ -102,7 +102,7 @@ func TestTableOrdersBySeverity(t *testing.T) {
 	t.Parallel()
 
 	var buf bytes.Buffer
-	if err := report.Table(&buf, sampleResults(), report.Options{}); err != nil {
+	if err := report.Table(&buf, report.NewDocument(sampleResults()), report.Options{}); err != nil {
 		t.Fatalf("Table() error = %v, want nil", err)
 	}
 	out := buf.String()
@@ -126,10 +126,10 @@ func TestTableNoColorByDefault(t *testing.T) {
 	t.Parallel()
 
 	var plain, colored bytes.Buffer
-	if err := report.Table(&plain, sampleResults(), report.Options{}); err != nil {
+	if err := report.Table(&plain, report.NewDocument(sampleResults()), report.Options{}); err != nil {
 		t.Fatalf("Table() error = %v", err)
 	}
-	if err := report.Table(&colored, sampleResults(), report.Options{Color: true}); err != nil {
+	if err := report.Table(&colored, report.NewDocument(sampleResults()), report.Options{Color: true}); err != nil {
 		t.Fatalf("Table() error = %v", err)
 	}
 
@@ -145,7 +145,7 @@ func TestTableLimit(t *testing.T) {
 	t.Parallel()
 
 	var buf bytes.Buffer
-	if err := report.Table(&buf, sampleResults(), report.Options{Limit: 1}); err != nil {
+	if err := report.Table(&buf, report.NewDocument(sampleResults()), report.Options{Limit: 1}); err != nil {
 		t.Fatalf("Table() error = %v", err)
 	}
 	out := buf.String()
@@ -163,7 +163,7 @@ func TestTableEmpty(t *testing.T) {
 	t.Parallel()
 
 	var buf bytes.Buffer
-	if err := report.Table(&buf, nil, report.Options{}); err != nil {
+	if err := report.Table(&buf, report.NewDocument(nil), report.Options{}); err != nil {
 		t.Fatalf("Table() error = %v, want nil", err)
 	}
 	if !strings.Contains(buf.String(), "No findings") {
@@ -175,7 +175,7 @@ func TestJSONRoundTrip(t *testing.T) {
 	t.Parallel()
 
 	var buf bytes.Buffer
-	if err := report.JSON(&buf, sampleResults()); err != nil {
+	if err := report.JSON(&buf, report.NewDocument(sampleResults())); err != nil {
 		t.Fatalf("JSON() error = %v, want nil", err)
 	}
 
@@ -208,7 +208,7 @@ func TestJSONEmptyFindingsIsArray(t *testing.T) {
 	t.Parallel()
 
 	var buf bytes.Buffer
-	if err := report.JSON(&buf, nil); err != nil {
+	if err := report.JSON(&buf, report.NewDocument(nil)); err != nil {
 		t.Fatalf("JSON() error = %v, want nil", err)
 	}
 
@@ -237,7 +237,7 @@ func TestSARIFStructure(t *testing.T) {
 	t.Parallel()
 
 	var buf bytes.Buffer
-	if err := report.SARIF(&buf, sampleResults()); err != nil {
+	if err := report.SARIF(&buf, report.NewDocument(sampleResults())); err != nil {
 		t.Fatalf("SARIF() error = %v, want nil", err)
 	}
 
@@ -348,7 +348,7 @@ func TestSARIFLevelMapping(t *testing.T) {
 			}}
 
 			var buf bytes.Buffer
-			if err := report.SARIF(&buf, results); err != nil {
+			if err := report.SARIF(&buf, report.NewDocument(results)); err != nil {
 				t.Fatalf("SARIF() error = %v", err)
 			}
 			if !strings.Contains(buf.String(), `"level": "`+tt.want+`"`) {
@@ -375,7 +375,7 @@ func TestWriteDispatchesByFormat(t *testing.T) {
 			t.Parallel()
 
 			var buf bytes.Buffer
-			if err := report.Write(&buf, tt.format, sampleResults(), report.Options{}); err != nil {
+			if err := report.Write(&buf, tt.format, report.NewDocument(sampleResults()), report.Options{}); err != nil {
 				t.Fatalf("Write() error = %v, want nil", err)
 			}
 			if !strings.Contains(buf.String(), tt.want) {

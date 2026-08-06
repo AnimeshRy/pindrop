@@ -16,6 +16,7 @@ next person re-walking the same path.
 | [0004](0004-typescript-6-pin.md) | Pin TypeScript to 6.x rather than 7.x | Accepted, temporary |
 | [0005](0005-mise-optional.md) | mise as an optional layer, not a build dependency | Accepted |
 | [0006](0006-canonical-identity-before-dedup.md) | Canonicalize advisory IDs and package coordinates before fingerprinting | Accepted |
+| [0007](0007-supabase-auth-cloud-mode.md) | Supabase Auth with runtime cloud/self-hosted mode | Accepted |
 
 ## Format
 

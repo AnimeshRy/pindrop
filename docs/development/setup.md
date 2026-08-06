@@ -101,6 +101,44 @@ make dev            # http://localhost:5173
 The report is re-read on every request, so re-running a scan shows up on the
 next refresh without restarting anything.
 
+## Cloud mode (Supabase Auth)
+
+Self-hosted `pindrop serve` is unchanged. For the online product, run the server
+in cloud mode so the API requires a Supabase access token:
+
+```bash
+export PINDROP_MODE=cloud
+export PINDROP_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+export PINDROP_SUPABASE_PUBLISHABLE_KEY=sb_publishable_…   # Settings → API Keys
+./bin/pindrop serve
+```
+
+In a second terminal, `make dev` and open http://localhost:5173. The UI loads
+`/api/v1/config`, shows Google/GitHub sign-in, and sends `Authorization: Bearer`
+on API calls.
+
+### Supabase dashboard (one-time)
+
+The Supabase MCP tools cannot enable Auth providers. In the
+[pindrop](https://supabase.com/dashboard) project:
+
+1. **Google Cloud** and **GitHub** OAuth apps with callback URL
+   `https://YOUR_PROJECT.supabase.co/auth/v1/callback`.
+2. **Authentication → Providers:** enable Google and GitHub; paste client id/secret.
+3. **Authentication → URL Configuration:** Site URL `http://localhost:5173`;
+   redirect allowlist `http://localhost:5173/**` and `http://127.0.0.1:7777/**`
+   (add production URLs when you deploy).
+
+Login OAuth does **not** request GitHub repository scopes. Repo integration is
+Phase 5 (GitHub App).
+
+Verify cloud auth:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' localhost:7777/api/v1/findings   # 401
+curl -s localhost:7777/api/v1/config | jq .
+```
+
 ## Verifying a change end to end
 
 ```bash

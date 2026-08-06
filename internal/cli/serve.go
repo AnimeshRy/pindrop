@@ -26,8 +26,11 @@ const defaultResultsPath = ".pindrop/report.json"
 const shutdownGrace = 5 * time.Second
 
 type serveOptions struct {
-	addr    string
-	results string
+	addr           string
+	results        string
+	mode           string
+	supabaseURL    string
+	publishableKey string
 }
 
 func newServeCommand(_ *globals) *cobra.Command {
@@ -51,6 +54,12 @@ reflected on the next page refresh without restarting the server.`),
 		"address to listen on")
 	cmd.Flags().StringVar(&opts.results, "results", defaultResultsPath,
 		"path to the JSON scan report to serve")
+	cmd.Flags().StringVar(&opts.mode, "mode", "",
+		"deployment mode: self-hosted (default) or cloud")
+	cmd.Flags().StringVar(&opts.supabaseURL, "supabase-url", "",
+		"Supabase project URL for cloud mode (overrides PINDROP_SUPABASE_URL)")
+	cmd.Flags().StringVar(&opts.publishableKey, "supabase-publishable-key", "",
+		"Supabase publishable API key for cloud mode (overrides PINDROP_SUPABASE_PUBLISHABLE_KEY)")
 
 	return cmd
 }
@@ -68,7 +77,7 @@ func runServe(ctx context.Context, opts *serveOptions) error {
 		assets = nil
 	}
 
-	srv, err := newServer(assets, opts.results)
+	srv, err := newServer(assets, opts)
 	if err != nil {
 		return err
 	}
@@ -106,11 +115,24 @@ func runServe(ctx context.Context, opts *serveOptions) error {
 }
 
 // newServer wires the HTTP server to its asset tree and report source.
-func newServer(assets fs.FS, resultsPath string) (*httpapi.Server, error) {
-	srv, err := httpapi.New(httpapi.Config{
-		Assets: assets,
-		Source: httpapi.FileSource{Path: resultsPath},
-	})
+func newServer(assets fs.FS, opts *serveOptions) (*httpapi.Server, error) {
+	mode, err := resolveServeMode(opts.mode)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg, err := buildHTTPServerConfig(
+		mode,
+		resolveSupabaseURL(opts.supabaseURL),
+		resolvePublishableKey(opts.publishableKey),
+		assets,
+		opts.results,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	srv, err := httpapi.New(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("creating server: %w", err)
 	}

@@ -115,6 +115,23 @@ finishes first — required, since these values get persisted and diffed.
 A finding with an empty fingerprint passes through untouched rather than joining a
 group, so an adapter bug surfaces as duplicate rows instead of being hidden.
 
+### Merge before you cut
+
+Anything that drops findings — `--min-severity`, `--fail-on`, and every ranking
+step Phase 6 adds — must run on the merged list, never on raw per-scanner results.
+
+The reason is not efficiency. Tools disagree about severity routinely, so a
+threshold applied per scanner discards the lower-grading tool's copy of a jointly
+reported issue *before* the merge. The survivor then reports `Agreement() == 1`
+when two tools actually found it — quietly destroying the confidence signal that
+justified adding the second scanner.
+
+Mechanically: `report.NewDocument` is the single place `Dedup` runs, renderers take
+the prepared `report.Document`, and `scan.FilterBySeverity` operates on
+`[]scan.Finding`. Note that `ScanSummary.Findings` deliberately stays the raw
+per-scanner count, so the gap between it and `len(Document.Findings)` stays
+visible.
+
 ### Identity differs by category
 
 | Category | Inputs |

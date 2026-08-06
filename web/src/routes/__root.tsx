@@ -1,11 +1,33 @@
-import { createRootRoute, Link, Outlet } from '@tanstack/react-router'
+import { createRootRoute, Link, Outlet, redirect } from '@tanstack/react-router'
+
+import { UserMenu } from '@/components/UserMenu'
+import { waitForInitialSession } from '@/lib/auth-bootstrap'
+import { getAppConfig, isCloudMode } from '@/lib/config'
 
 export const Route = createRootRoute({
+  beforeLoad: async ({ location }) => {
+    if (!isCloudMode()) {
+      return
+    }
+
+    const session = await waitForInitialSession()
+    const path = location.pathname
+    const isPublicAuth = path === '/login' || path.startsWith('/auth/')
+
+    if (!session && !isPublicAuth) {
+      throw redirect({ to: '/login' })
+    }
+    if (session && path === '/login') {
+      throw redirect({ to: '/' })
+    }
+  },
   component: RootLayout,
   notFoundComponent: NotFound,
 })
 
 function RootLayout() {
+  const config = getAppConfig()
+
   return (
     <div className="min-h-full">
       <header className="border-b" style={{ borderColor: 'var(--border)' }}>
@@ -14,7 +36,7 @@ function RootLayout() {
             <span aria-hidden className="inline-block size-2 rounded-full bg-red-500" />
             Pindrop
           </Link>
-          <nav className="flex gap-4 text-sm">
+          <nav className="flex flex-1 gap-4 text-sm">
             <Link
               to="/"
               className="hover:underline"
@@ -24,6 +46,7 @@ function RootLayout() {
               Findings
             </Link>
           </nav>
+          {config.mode === 'cloud' && <UserMenu />}
         </div>
       </header>
 

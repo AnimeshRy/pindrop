@@ -22,6 +22,10 @@ dashboard).
 **Nothing is persisted yet** — fingerprints are computed and displayed but not
 compared across runs. Cross-scan diffing and triage are Phase 1.
 
+**Cloud auth (online product slice):** Supabase Google/GitHub sign-in when
+`PINDROP_MODE=cloud`; self-hosted mode unchanged. Server verifies ES256 JWTs via
+JWKS ([ADR 0007](docs/decisions/0007-supabase-auth-cloud-mode.md)).
+
 Cross-tool identity and dedup (`scan.Dedup`, `canonical.go`,
 [ADR 0006](docs/decisions/0006-canonical-identity-before-dedup.md)) landed early,
 because they change fingerprints and must precede persistence. Adding OSV-Scanner
@@ -85,6 +89,13 @@ because the fixture was written from docs. Capture, then trim.
 **`--exit-code 0` on every Trivy invocation.** Without it, "the tool crashed"
 and "the code has vulnerabilities" are the same exit code.
 
+**Merge before you cut.** `--min-severity`, `--fail-on`, and any future ranking
+operate on merged findings, never on raw `[]scan.Result`. Filtering per scanner
+drops one tool's copy of a jointly reported issue before dedup, so the survivor
+claims one scanner found it when two did — destroying the confidence signal.
+`report.NewDocument` is the only place `Dedup` runs; renderers take a
+`report.Document`. `ScanSummary.Findings` stays the raw pre-merge count on purpose.
+
 **A missing scanner binary must not fail the scan.** `scan.Usable` drops
 unavailable scanners and the CLI warns; only an empty usable set is fatal.
 Requiring every tool to be installed breaks the zero-setup first run. Relatedly,
@@ -127,6 +138,14 @@ which sends you looking in the wrong place.
 **TypeScript is pinned to 6.x deliberately**
 ([ADR 0004](docs/decisions/0004-typescript-6-pin.md)) — `typescript-eslint`
 cannot run on TS 7. Do not "helpfully" upgrade it.
+
+**Cloud auth accepts ES256 only.** `internal/auth` rejects HS256 and `none`.
+Supabase signing keys are asymmetric; adding HMAC verification would reopen
+algorithm-confusion bugs. OAuth login must not request GitHub `repo` scope — that
+is the GitHub App's job in Phase 5.
+
+**`internal/httpapi` must not import `internal/auth`.** The adapter lives in
+`httpapi.NewAuthAdapter`; `cli` wires the verifier at the composition root.
 
 ## Style, briefly
 

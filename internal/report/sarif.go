@@ -100,9 +100,9 @@ type sarifRegion struct {
 	} `json:"snippet,omitempty"`
 }
 
-// SARIF writes results as a SARIF 2.1.0 log.
-func SARIF(w io.Writer, results []scan.Result) error {
-	findings := scan.Findings(results)
+// SARIF writes doc as a SARIF 2.1.0 log.
+func SARIF(w io.Writer, doc Document) error {
+	findings := doc.Findings
 
 	rules := make([]sarifRule, 0, len(findings))
 	ruleIndex := make(map[string]int, len(findings))
