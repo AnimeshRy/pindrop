@@ -1,0 +1,109 @@
+.github/workflows/ci.yml
+  s_a73315d9807e4b::t_e95e7530ed18cb 212-213,216
+  s_a73315d9807e4b::t_d2e1c56fa3c063 228-229
+  s_a73315d9807e4b::t_6c106fed679765 122-136
+  s_a73315d9807e4b::t_f06d526eeb3051 148-180
+  s_a73315d9807e4b::t_f9d266848a0901 23-25
+Makefile
+  s_a73315d9807e4b::t_80d2f8dc267a8f 98-100
+  s_a73315d9807e4b::t_8647ecb8d514b8 151-163
+  s_a73315d9807e4b::t_374df3b1eee239 244-275
+  s_a73315d9807e4b::t_f1584fb51622d6 67
+  s_a73315d9807e4b::t_3c0f9a588ca009 287
+  s_a73315d9807e4b::t_d0521b85e0e3b9 82
+  s_a73315d9807e4b::t_dae2149e43f5c6 290
+  s_a73315d9807e4b::t_eb29cadf78e515 40-42
+docs/decisions/0008-trufflehog-verification-opt-in.md
+  s_a73315d9807e4b::t_38f14a600f9a6b 1-123
+docs/product/roadmap.md
+  s_a73315d9807e4b::t_621548b6910e3c 70-72
+  s_a73315d9807e4b::t_902b17a7794c73 77-91,97-109,112-114
+CLAUDE.md
+  s_a73315d9807e4b::t_c402ef6844159b 39-47
+  s_a73315d9807e4b::t_ee1730e2007e45 20-21
+  s_a73315d9807e4b::t_d91186f2bb9779 68
+  s_a73315d9807e4b::t_058ca51ddd8837 132-155
+docs/architecture/repo-layout.md
+  s_a73315d9807e4b::t_373ebc184cac0c 11-12,25
+README.md
+  s_a73315d9807e4b::t_8f30c615babf16 70-74
+internal/scan/trufflehog/testdata/README.md
+  s_a73315d9807e4b::t_5db2e095bae74d 1-82
+docs/README.md
+  s_a73315d9807e4b::t_373ebc184cac0c 34-35
+internal/scan/trufflehog/testdata/report.jsonl
+  s_a73315d9807e4b::t_b788ac7cce3dd9 1-6
+  s_a73315d9807e4b::t_5d326ada5a13fd 7-9
+.gitignore
+  h_829f9361b81559 42-45
+internal/scan/trufflehog/convert.go
+  s_a73315d9807e4b::t_f6ac18a8dcd4a3 9
+  s_a73315d9807e4b::t_0a2d13baebccce 209-210
+  s_a73315d9807e4b::t_3ec8d4367f4982 340
+  s_a73315d9807e4b::t_397142f45d0f25 1-8,10-208,211-293,327-339,341-342
+  s_a73315d9807e4b::t_753cd2033115a2 294-326
+internal/scan/trufflehog/report.go
+  s_a73315d9807e4b::t_6539143778a76f 1-94
+docs/development/setup.md
+  s_a73315d9807e4b::t_0305d429a52924 13,55-56,77,170-177
+  s_a73315d9807e4b::t_4216cf9445b486 53,87-89
+  s_a73315d9807e4b::t_d91186f2bb9779 178-185
+  s_a73315d9807e4b::t_5b91ea294172ee 203-205
+testdata/vulnerable-app/README.md
+  s_a73315d9807e4b::t_06e76758197814 11-12,54-59,64,66-70
+internal/scan/trufflehog/exclude.go
+  s_a73315d9807e4b::t_a8d5b9706a2f35 1-92
+internal/scan/trufflehog/trufflehog.go
+  s_a73315d9807e4b::t_b84c024c6b1e20 1-298,300-319,359-399
+  s_a73315d9807e4b::t_c43fac97da2fb5 299
+  s_a73315d9807e4b::t_1599d2cfe2d7df 320-358
+internal/scan/trufflehog/trufflehog_test.go
+  s_a73315d9807e4b::t_e80024c8854dd5 1-7,10-136,207,278-279,289-357,362-427
+  s_a73315d9807e4b::t_ded2d630ff53e2 137-202
+  s_a73315d9807e4b::t_4ba6e1ae071686 8
+  s_a73315d9807e4b::t_07cd1657a8e5c0 203-206,208-277,280-288
+  s_a73315d9807e4b::t_be9c02b04f58db 9
+  s_a73315d9807e4b::t_b85d6afc75ee5c 358-361
+docs/decisions/README.md
+  s_a73315d9807e4b::t_dd2ed5f10e3f59 20
+docs/architecture/finding-model.md
+  s_a73315d9807e4b::t_823bbfd2217085 134-149
+internal/scan/trufflehog/convert_test.go
+  s_a73315d9807e4b::t_7888c330e03eb5 1-131,191-357,362-365,370-378,383-386,391-583
+  s_a73315d9807e4b::t_c2316de36753e4 358-361,366-369,379-382,387-390
+  s_a73315d9807e4b::t_6a4a6b51df7027 132-190
+docs/architecture/scanners.md
+  s_a73315d9807e4b::t_21a1d8a1865c09 438-468
+  s_a73315d9807e4b::t_8adef48839b362 164-167,169-180,185-196,198-199
+  s_a73315d9807e4b::t_07917af42f2c02 95
+  s_a73315d9807e4b::t_e06888e6652756 147-163,168,181-184,197,200-210
+  s_a73315d9807e4b::t_16385b5305cd19 107,111-119
+  s_a73315d9807e4b::t_0ffc88f0bd90a0 306-342
+  s_a73315d9807e4b::t_d843ec364f7d8e 74-77
+internal/cli/scan.go
+  s_a73315d9807e4b::t_32f65bce93fb50 43-46
+  s_a73315d9807e4b::t_638316fd239a02 19
+  s_a73315d9807e4b::t_dfd7b69cce02c4 146-150
+  s_a73315d9807e4b::t_88e8468ea9e822 92-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "42d407eb334cde2c62cea4cb74dbfbbe68530b5d",
+  "prompts": {},
+  "humans": {
+    "h_829f9361b81559": {
+      "author": "AnimeshRy <ani16september@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_a73315d9807e4b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "85da5a85-f06b-4e8a-8da0-bb6c77b7749c",
+        "model": "claude-opus-5"
+      },
+      "human_author": "AnimeshRy <ani16september@gmail.com>"
+    }
+  }
+}
