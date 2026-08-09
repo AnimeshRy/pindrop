@@ -1,0 +1,184 @@
+internal/scan/trivy/trivy.go
+  s_469fb3c7c2ee07::t_28a99cf46e69c3 127-130
+  s_469fb3c7c2ee07::t_ff2d0beab4ec48 39-40
+  s_469fb3c7c2ee07::t_6f3c1a82c31783 158-161,163
+  s_469fb3c7c2ee07::t_78610c1d3863ad 22
+docs/decisions/README.md
+  s_469fb3c7c2ee07::t_51acea8a13f2ce 22
+  s_469fb3c7c2ee07::t_0d4c4459a28ac5 23
+  s_469fb3c7c2ee07::t_1de0430f05851a 21
+internal/toolinstall/record.go
+  s_469fb3c7c2ee07::t_2c6c118a62f4cc 1-28,30-48,50-125
+  s_469fb3c7c2ee07::t_6a439257be7023 29
+  s_469fb3c7c2ee07::t_95ea55a07bfb7b 49
+internal/scan/run.go
+  s_469fb3c7c2ee07::t_4d3ae28c3ab589 105-106,119-123,125
+  s_469fb3c7c2ee07::t_e2315f269e3ad2 21-26,30-36,40-42,46-49,52,54-57
+  s_469fb3c7c2ee07::t_215cee05d4abf8 93-96
+  s_469fb3c7c2ee07::t_64e29eca533665 9
+internal/scan/progress.go
+  s_469fb3c7c2ee07::t_d14d614c2f538a 1-105
+docs/decisions/0009-apache-2-license.md
+  s_469fb3c7c2ee07::t_f70b47b43151b8 1-80
+CLAUDE.md
+  s_469fb3c7c2ee07::t_0d4c4459a28ac5 58-66,213-236
+  s_469fb3c7c2ee07::t_757f5421264f9d 48-57,86,177-212,237
+docs/architecture/scanners.md
+  s_469fb3c7c2ee07::t_51ea8ac4d43d7c 303-309
+internal/tui/scan.go
+  s_469fb3c7c2ee07::t_3ef3b29386a772 122,150,152-154,215-219,221-222,225,255-258,261,266,270
+  s_469fb3c7c2ee07::t_80c460755757c4 1-121,123-149,151,155-161,174-179,182,184,188-189,192,203,210-214,220,223-224,226-254,259-260,262-265,267-269,271-279,284
+  s_469fb3c7c2ee07::t_97242036894c46 162-173,180-181,183,185-187,190-191,193-202,204-209
+  s_469fb3c7c2ee07::t_3d2f910ce76883 280-283
+internal/cli/setup_test.go
+  s_469fb3c7c2ee07::t_130b34a78453f7 1-206
+docs/development/conventions.md
+  s_469fb3c7c2ee07::t_0d4c4459a28ac5 47-49
+internal/toolinstall/install.go
+  s_469fb3c7c2ee07::t_95ea55a07bfb7b 274-275,282
+  s_469fb3c7c2ee07::t_7c53ab413eadc7 238-242
+  s_469fb3c7c2ee07::t_fceb38bbc4fb29 1-237,243-273,276-281,283-314
+internal/cli/scan.go
+  s_469fb3c7c2ee07::t_2f49092fa3788e 193
+  s_469fb3c7c2ee07::t_3e1c75c8311d56 415,431-453
+  s_469fb3c7c2ee07::t_da1d4bd3467e8c 20,179,185,229,374-379,388-393,396,421,429
+  s_469fb3c7c2ee07::t_2a820eb3c691b7 118-130,150-151
+  s_469fb3c7c2ee07::t_07757381b9a22b 48-50,110-113,206-214,219-228,230-236
+  s_469fb3c7c2ee07::t_fbd1067b5b9db8 202-204,399-414,416-420,422-428,430
+  s_469fb3c7c2ee07::t_acf6174b52bbd6 152-178,180-184,186-191
+  s_469fb3c7c2ee07::t_f396f56aa42219 380-387,394-395,397-398
+  s_469fb3c7c2ee07::t_79fd4ae904272a 192
+internal/toolinstall/manifest.json
+  s_469fb3c7c2ee07::t_90503e91327983 1-181
+.golangci.yml
+  s_469fb3c7c2ee07::t_2c3d2e67e5677a 66-72
+docs/development/setup.md
+  s_469fb3c7c2ee07::t_a84e0fcd502f15 10-16,30-34
+  s_469fb3c7c2ee07::t_51ea8ac4d43d7c 216-237
+  s_469fb3c7c2ee07::t_63a877e2431858 35
+internal/toolpath/home.go
+  s_469fb3c7c2ee07::t_e608dde310237e 1-101
+  s_469fb3c7c2ee07::t_d8a2a3b80146f7 102
+internal/toolinstall/manifest.go
+  s_469fb3c7c2ee07::t_c7c8c951f90840 1-35,38-135,137-240,261-269,271-285,311-314,319-320,322-359,362-402
+  s_469fb3c7c2ee07::t_95ea55a07bfb7b 270
+  s_469fb3c7c2ee07::t_c00787f20c47c0 36-37,136,241-260,286-310,315-318,321,360-361
+internal/scan/progress_test.go
+  s_469fb3c7c2ee07::t_66f01b171b18cd 1-248
+internal/scan/opengrep/opengrep.go
+  s_469fb3c7c2ee07::t_ff2d0beab4ec48 63-64
+  s_469fb3c7c2ee07::t_671200e6490001 359
+  s_469fb3c7c2ee07::t_28a99cf46e69c3 174-177
+  s_469fb3c7c2ee07::t_78610c1d3863ad 48
+  s_469fb3c7c2ee07::t_3b00f7b87a16d9 248-251
+  s_469fb3c7c2ee07::t_8c503019c548bc 200-205,207-225,228-242,245
+  s_469fb3c7c2ee07::t_0440ece07498ec 226-227,246
+internal/toolinstall/genmanifest/main.go
+  s_469fb3c7c2ee07::t_4dbf60a3a2d22c 1-221,233-235,240,242-254,256-263,265,269-276,278-283,285,287-290,292-300,319-482
+  s_469fb3c7c2ee07::t_5bf09bc5b02e62 222-232,236-239,241,255,264,266-268,277,284,286,291,301-318
+internal/tui/tui.go
+  s_469fb3c7c2ee07::t_3d2f910ce76883 160-168
+  s_469fb3c7c2ee07::t_f396f56aa42219 204-205,221-225,227-241,244
+  s_469fb3c7c2ee07::t_812f9b67080e97 1-159,169-203,206-220,226,242-243,245-251
+docs/architecture/repo-layout.md
+  s_469fb3c7c2ee07::t_0d4c4459a28ac5 15,95
+  s_469fb3c7c2ee07::t_51ea8ac4d43d7c 13-14,29-30,35-42,92
+README.md
+  s_469fb3c7c2ee07::t_32a62a5db8f26c 55-57,63,68-71,73-141,145-152,158,165-188
+  s_469fb3c7c2ee07::t_09c807b568831b 200-202,222-223,226-227,230-233
+  s_469fb3c7c2ee07::t_51acea8a13f2ce 62,64,72,160-161
+  s_469fb3c7c2ee07::t_ee23eafdeff267 11-29,32-37
+  s_469fb3c7c2ee07::t_766f70ae03563d 242-245
+  s_469fb3c7c2ee07::t_2b02d29ed856d1 234
+LICENSE
+  s_469fb3c7c2ee07::t_6a6e098291d013 1-189,191-202
+  h_829f9361b81559 190
+internal/toolpath/lookup.go
+  s_469fb3c7c2ee07::t_fc94b61e49726c 1-126,134-135,139-141,143-147
+  s_469fb3c7c2ee07::t_28a99cf46e69c3 148-160
+  s_469fb3c7c2ee07::t_0aceb88fe9a28c 127-133,136-138,142
+internal/toolinstall/manifest_test.go
+  s_469fb3c7c2ee07::t_117694c0d7e8a4 1-346
+internal/cli/setup.go
+  s_469fb3c7c2ee07::t_6efcf8fd6e1cda 30,51,72,100,102,155,268,335
+  s_469fb3c7c2ee07::t_a84e0fcd502f15 45-48
+  s_469fb3c7c2ee07::t_995ef340cf7631 282-283,594-601,603-611,614-619,624,626,628
+  s_469fb3c7c2ee07::t_ab231a93ca949f 287,289-290,293-294,302-303,602,612-613,620-623,625,627
+  s_469fb3c7c2ee07::t_75c2d22119691e 402-418,420-425,430-431,433-438,441-458,474-476,478-479,481-483,485,491-524,533,535,543-556,565-566,577,580-581,587-588,590,592-593,629
+  s_469fb3c7c2ee07::t_3e1c75c8311d56 419,432,528,538-540
+  s_469fb3c7c2ee07::t_b68cc77c926509 1-29,31-44,49-50,52-71,73-99,101,103-154,156-158,160-173,175-178,180-184,186-187,189,191-199,219,229,231,233,235-236,246-247,249-260,262-267,269-281,284,286,288,291-292,296-301,304-307,309-315,317-324,326-334,336-341,343-344,346-347,349-359,361-368,370-373,384-401
+  s_469fb3c7c2ee07::t_e34ca672c9a2e4 525-527,529-532,534,536-537,541-542,557-564,567-568,575-576,578,583-586,589,591
+  s_469fb3c7c2ee07::t_11b523878fb299 159,174,179,185,188,190,200-218,220-228,230,232,234,237-245,248,261,285,295,308,316,325,342,345,348,360,369,374-382
+  s_469fb3c7c2ee07::t_19bdd4d26b223a 383
+  s_469fb3c7c2ee07::t_fbd1067b5b9db8 459-473,477,480,484,486-490
+  s_469fb3c7c2ee07::t_3ef3b29386a772 426-429,439-440
+  s_469fb3c7c2ee07::t_47f903ab265641 569-574,579,582
+internal/scan/osv/osv.go
+  s_469fb3c7c2ee07::t_28a99cf46e69c3 139-142
+  s_469fb3c7c2ee07::t_ff2d0beab4ec48 44-45
+  s_469fb3c7c2ee07::t_78610c1d3863ad 32
+  s_469fb3c7c2ee07::t_98eea1a6ed15c4 164-165,167
+internal/scan/opengrep/opengrep_test.go
+  s_469fb3c7c2ee07::t_eee0af261d23a6 202-265
+NOTICE
+  s_469fb3c7c2ee07::t_c431494f005eaa 1-19
+Makefile
+  s_469fb3c7c2ee07::t_240b3a22e67fd9 164-183
+internal/toolpath/lookup_test.go
+  s_469fb3c7c2ee07::t_8c72ecf694cb43 170-190
+  s_469fb3c7c2ee07::t_925891392da90c 145
+  s_469fb3c7c2ee07::t_a19666a24443ce 1-144,146-169,191-288
+internal/tui/style.go
+  s_469fb3c7c2ee07::t_8fe51621c107ba 1-85
+internal/toolinstall/install_test.go
+  s_469fb3c7c2ee07::t_d8e1ac0208dac3 59-71,76-84
+  s_469fb3c7c2ee07::t_7c53ab413eadc7 314
+  s_469fb3c7c2ee07::t_5b90b4fefc58e5 118
+  s_469fb3c7c2ee07::t_8d11e1101acfdd 244-247,292-296,315
+  s_469fb3c7c2ee07::t_52fd4a2ed3462d 1-58,85-117,119-243,248-291,297-309,316-571
+  s_469fb3c7c2ee07::t_c81822c34a97b4 72-75
+  s_469fb3c7c2ee07::t_0a2e07407041dc 310-313
+docs/decisions/0010-managed-scanner-installation.md
+  s_469fb3c7c2ee07::t_8c408f4701029a 1-129
+internal/cli/root.go
+  s_469fb3c7c2ee07::t_ef6167ff399e9f 80-89,97
+  s_469fb3c7c2ee07::t_6efcf8fd6e1cda 56
+internal/scan/trufflehog/trufflehog.go
+  s_469fb3c7c2ee07::t_28a99cf46e69c3 164-167
+  s_469fb3c7c2ee07::t_3dc73752004058 184-185,187
+  s_469fb3c7c2ee07::t_ff2d0beab4ec48 63-64
+  s_469fb3c7c2ee07::t_78610c1d3863ad 49
+go.mod
+  s_469fb3c7c2ee07::t_c48a8a038434ca 10-17,19-26,28-30
+internal/tui/tui_test.go
+  s_469fb3c7c2ee07::t_ac45a3302e7a39 1-219,221-297
+  s_469fb3c7c2ee07::t_3ef3b29386a772 220
+docs/decisions/0011-bubbletea-for-progress.md
+  s_469fb3c7c2ee07::t_6b1ba6ea06719b 1-113
+internal/toolinstall/extract.go
+  s_469fb3c7c2ee07::t_8b16079bf56e7d 1-39,42-137
+  s_469fb3c7c2ee07::t_95ea55a07bfb7b 40-41
+go.sum
+  s_469fb3c7c2ee07::t_32c58e6e9de788 1-14,16-17,20-36,43-44,46-51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "e5879ec82380351e55d4b5cbc5425164e1fa439f",
+  "prompts": {},
+  "humans": {
+    "h_829f9361b81559": {
+      "author": "AnimeshRy <ani16september@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_469fb3c7c2ee07": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bab40769-f922-4506-a999-8282de2144bf",
+        "model": "claude-opus-5"
+      },
+      "human_author": "AnimeshRy <ani16september@gmail.com>"
+    }
+  }
+}
