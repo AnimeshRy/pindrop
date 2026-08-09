@@ -13,14 +13,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/AnimeshRy/pindrop/internal/scan"
+	"github.com/AnimeshRy/pindrop/internal/toolpath"
 )
 
 // Name is the scanner identifier recorded on every finding this adapter
@@ -37,7 +36,8 @@ const minVersion = "0.50.0"
 const defaultTimeout = 10 * time.Minute
 
 // installHint is shown when the binary is missing. It is user-facing text.
-const installHint = "Install Trivy: https://trivy.dev/latest/getting-started/installation/"
+const installHint = "Run `pindrop setup` to install a pinned, checksum-verified copy.\n" +
+	"  Install Trivy yourself: https://trivy.dev/latest/getting-started/installation/"
 
 // DefaultScanners are the Trivy sub-scanners enabled unless overridden.
 //
@@ -124,9 +124,10 @@ func (s *Scanner) Preflight(ctx context.Context) error {
 	if err != nil {
 		return &scan.UnavailableError{
 			Scanner: Name,
-			Reason:  fmt.Sprintf("%q not found in PATH or alongside the pindrop binary", s.binary),
-			Hint:    installHint + "\n  Or point at an existing copy: --trivy-binary /path/to/trivy",
-			Err:     err,
+			Reason: fmt.Sprintf("%q not found in PATH, alongside the pindrop binary, or in %s",
+				s.binary, toolpath.Display(toolpath.ManagedDir())),
+			Hint: installHint + "\n  Or point at an existing copy: --trivy-binary /path/to/trivy",
+			Err:  err,
 		}
 	}
 
@@ -154,37 +155,12 @@ func (s *Scanner) Preflight(ctx context.Context) error {
 	return nil
 }
 
-// resolve locates the Trivy executable.
-//
-// PATH is consulted first, then the directory holding the running pindrop
-// binary. The sibling lookup exists because `make setup` installs tools into
-// ./bin, and a user running ./bin/pindrop should not also have to put ./bin on
-// their PATH just to be found by their own toolchain.
-//
-// An explicit path containing a separator is used verbatim, so --trivy-binary
-// always wins.
+// resolve locates the Trivy executable. The search order — an explicit
+// --trivy-binary path, then PATH, then beside the pindrop binary, then the
+// directory `pindrop setup` installs into — lives in toolpath, because all four
+// adapters need exactly the same answer.
 func (s *Scanner) resolve() (string, error) {
-	if strings.ContainsRune(s.binary, os.PathSeparator) {
-		return exec.LookPath(s.binary)
-	}
-
-	path, pathErr := exec.LookPath(s.binary)
-	if pathErr == nil {
-		return path, nil
-	}
-
-	self, err := os.Executable()
-	if err != nil {
-		return "", pathErr
-	}
-
-	sibling := filepath.Join(filepath.Dir(self), s.binary)
-	if resolved, err := exec.LookPath(sibling); err == nil {
-		return resolved, nil
-	}
-
-	// Report the PATH failure: it is the one the user can act on.
-	return "", pathErr
+	return toolpath.Lookup(s.binary, toolpath.Env(s.binary))
 }
 
 // version reports the Trivy release at path.

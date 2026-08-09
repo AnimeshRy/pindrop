@@ -18,6 +18,9 @@ next person re-walking the same path.
 | [0006](0006-canonical-identity-before-dedup.md) | Canonicalize advisory IDs and package coordinates before fingerprinting | Accepted |
 | [0007](0007-first-party-opengrep-rules.md) | Ship our own Opengrep rules; bundle none from any registry | Accepted |
 | [0008](0008-trufflehog-verification-opt-in.md) | TruffleHog secret verification is off by default and opt-in | Accepted |
+| [0009](0009-apache-2-license.md) | Pindrop is licensed Apache-2.0 | Accepted |
+| [0010](0010-managed-scanner-installation.md) | Pindrop installs and verifies its own scanner binaries | Accepted |
+| [0011](0011-bubbletea-for-progress.md) | bubbletea and lipgloss for the live scan display, confined to `internal/tui` | Accepted |
 
 ## Format
 

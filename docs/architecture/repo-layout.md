@@ -10,6 +10,9 @@ pindrop/
 │   │   ├── osv/          OSV-Scanner adapter (subprocess)
 │   │   ├── opengrep/     Opengrep adapter (subprocess) + rules/, go:embed'd
 │   │   └── trufflehog/   TruffleHog adapter (subprocess; AGPL, never import)
+│   ├── toolpath/         LEAF: where an external tool's binary lives
+│   ├── toolinstall/      downloads + verifies scanners; manifest.json
+│   ├── tui/              live progress; the only bubbletea/lipgloss importer
 │   ├── report/           renderers: table, json, sarif
 │   ├── httpapi/          serve: SPA + read-only JSON API
 │   └── buildinfo/        version identity
@@ -23,13 +26,20 @@ pindrop/
 ```
 cmd/pindrop
     └── internal/cli ──────────┬── internal/scan ◄── internal/scan/{trivy,osv,opengrep,trufflehog}
-                               ├── internal/report ──┘
+                               ├── internal/report ──┘                    │
+                               ├── internal/toolinstall ── internal/toolpath ◄┘
                                ├── internal/httpapi
                                └── web (embed)
 ```
 
-The arrows all point inward at `internal/scan`. That package imports nothing of
-ours except the standard library.
+There are two leaves — `internal/scan` and `internal/toolpath` — and both import
+nothing of ours except the standard library. Everything else points inward at one
+of them.
+
+`internal/toolpath` is separate from `internal/toolinstall` on purpose. The four
+adapters need to *locate* a binary; only the CLI needs to *install* one. Merging
+them would put `net/http` and `archive/tar` into every adapter's import graph, and
+would let distribution policy leak into the scanner packages.
 
 ## Why each boundary exists
 
@@ -79,9 +89,10 @@ acquire fields that exist only to satisfy an output format.
 
 | Adding… | Goes in | Also touch |
 |---|---|---|
-| A scanner | `internal/scan/<tool>/` | the slice in `internal/cli/scan.go` |
+| A scanner | `internal/scan/<tool>/` | `scannerRegistry` in `internal/cli/scan.go`, and the `sources` table in `internal/toolinstall/genmanifest` — then `make manifest` |
 | An output format | `internal/report/` | `Format` consts and `Write` |
 | A CLI command | `internal/cli/` | `root.go` `AddCommand` |
+| A progress display | `internal/tui/` | nothing else may import bubbletea ([ADR 0011](../decisions/0011-bubbletea-for-progress.md)) |
 | An API route | `internal/httpapi/server.go` | `routes()` |
 | A finding field | `internal/scan/finding.go` | consider the fingerprint impact |
 | A dashboard page | `web/src/routes/` | routes are file-based |

@@ -39,15 +39,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/AnimeshRy/pindrop/internal/scan"
+	"github.com/AnimeshRy/pindrop/internal/toolpath"
 )
 
 // Name is the scanner identifier recorded on every finding. It is persisted, so
@@ -61,8 +60,8 @@ const defaultTimeout = 10 * time.Minute
 
 // installHint is shown verbatim when the binary is missing. Our users are not
 // security engineers, so it names the tool and gives a command.
-const installHint = "Install TruffleHog: https://github.com/trufflesecurity/trufflehog#installation\n" +
-	"  Or run: make trufflehog"
+const installHint = "Run `pindrop setup` to install a pinned, checksum-verified copy.\n" +
+	"  Install TruffleHog yourself: https://github.com/trufflesecurity/trufflehog#installation"
 
 // Exit codes.
 //
@@ -162,9 +161,10 @@ func (s *Scanner) Preflight(ctx context.Context) error {
 	if err != nil {
 		return &scan.UnavailableError{
 			Scanner: Name,
-			Reason:  fmt.Sprintf("%q not found in PATH or alongside the pindrop binary", s.binary),
-			Hint:    installHint + "\n  Or point at an existing copy: --trufflehog-binary /path/to/trufflehog",
-			Err:     err,
+			Reason: fmt.Sprintf("%q not found in PATH, alongside the pindrop binary, or in %s",
+				s.binary, toolpath.Display(toolpath.ManagedDir())),
+			Hint: installHint + "\n  Or point at an existing copy: --trufflehog-binary /path/to/trufflehog",
+			Err:  err,
 		}
 	}
 
@@ -181,30 +181,10 @@ func (s *Scanner) Preflight(ctx context.Context) error {
 	return nil
 }
 
-// resolve locates the executable, preferring PATH and then the directory holding
-// the running pindrop binary, so that `make setup`'s ./bin copy is found without
-// ./bin being on PATH.
+// resolve locates the TruffleHog executable. See [toolpath.LookupOrigin] for the
+// search order, which is shared by every adapter.
 func (s *Scanner) resolve() (string, error) {
-	if strings.ContainsRune(s.binary, filepath.Separator) {
-		return exec.LookPath(s.binary)
-	}
-
-	path, pathErr := exec.LookPath(s.binary)
-	if pathErr == nil {
-		return path, nil
-	}
-
-	self, err := os.Executable()
-	if err != nil {
-		return "", pathErr
-	}
-	beside := filepath.Join(filepath.Dir(self), s.binary)
-	if path, err := exec.LookPath(beside); err == nil {
-		return path, nil
-	}
-
-	// The PATH error is the actionable one.
-	return "", pathErr
+	return toolpath.Lookup(s.binary, toolpath.Env(s.binary))
 }
 
 // Scan implements [scan.Scanner].

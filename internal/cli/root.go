@@ -53,6 +53,7 @@ issue keeps its identity across scans even when the surrounding code moves.`),
 		"disable colored output")
 
 	root.AddCommand(
+		newSetupCommand(&g),
 		newScanCommand(&g),
 		newServeCommand(&g),
 		newVersionCommand(),
@@ -76,9 +77,16 @@ func (g *globals) setupLogging() error {
 	return nil
 }
 
-// color reports whether output should be colorized: only when the user has not
-// opted out, NO_COLOR is unset, and stdout is an interactive terminal.
-func (g *globals) color() bool {
+// color reports whether the report on stdout should be colorized.
+func (g *globals) color() bool { return g.colorFor(os.Stdout) }
+
+// colorFor reports whether output written to f should be colorized: only when the
+// user has not opted out, NO_COLOR is unset, and f is an interactive terminal.
+//
+// Parameterized by file because the report goes to stdout while progress goes to
+// stderr, and the two are redirected independently — `pindrop scan . | less` has
+// a non-terminal stdout and a terminal stderr, and should color the second.
+func (g *globals) colorFor(f *os.File) bool {
 	if g.noColor {
 		return false
 	}
@@ -86,7 +94,7 @@ func (g *globals) color() bool {
 	if os.Getenv("NO_COLOR") != "" {
 		return false
 	}
-	return isTerminal(os.Stdout)
+	return isTerminal(f)
 }
 
 // isTerminal reports whether f is a character device, which is a good enough

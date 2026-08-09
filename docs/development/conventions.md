@@ -44,6 +44,9 @@ reason attached.
   has a package comment.
 - Comments explain **why**, not what. If a comment restates the code, delete it.
 - Prefer stdlib. Every dependency in a security tool is supply-chain surface.
+  The one deliberate exception is bubbletea/lipgloss, and it comes with a rule:
+  **a third-party UI dependency is imported from exactly one package.** See
+  [ADR 0011](../decisions/0011-bubbletea-for-progress.md).
 
 ### Concurrency
 

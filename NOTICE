@@ -1,0 +1,19 @@
+Pindrop
+Copyright 2026 Animesh Gautam
+
+This product includes software developed at
+https://github.com/AnimeshRy/pindrop
+
+Pindrop runs third-party security scanners as external subprocesses. Those tools
+are separately licensed and are neither distributed with, nor linked into, this
+software:
+
+  - Trivy (Apache-2.0)          https://github.com/aquasecurity/trivy
+  - OSV-Scanner (Apache-2.0)    https://github.com/google/osv-scanner
+  - Opengrep (LGPL-2.1)         https://github.com/opengrep/opengrep
+  - TruffleHog (AGPL-3.0)       https://github.com/trufflesecurity/trufflehog
+
+`pindrop setup` downloads these binaries for the user's own machine. Running an
+independent program as a subprocess does not create a derivative work, which is
+what keeps TruffleHog's AGPL-3.0 from reaching this codebase. See
+docs/architecture/scanners.md.

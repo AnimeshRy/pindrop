@@ -45,6 +45,25 @@ verification off it overlaps Trivy's 106 built-in secret rules and *will* report
 shared credentials twice, structurally rather than incidentally; and it is the
 first adapter whose snippet is derived rather than copied from the tool.
 
+`pindrop setup` followed, which is what makes the CLI installable rather than
+buildable: it downloads a pinned, digest-verified release of each scanner into
+`~/.pindrop/bin` and needs no package manager
+([ADR 0010](docs/decisions/0010-managed-scanner-installation.md)). Two things it
+surfaced are worth carrying forward. Binary resolution gained a fourth location
+and moved into `internal/toolpath`, out of the four adapters that had each copied
+it. And running a scan in a stripped environment exposed a latent Opengrep bug
+that had been silently discarding every code finding whenever no UTF-8 locale was
+set — see below.
+
+A live display followed, which is what makes a multi-minute scan legible: four
+rows updating on stderr while the fan-out runs, degrading to plain lines the
+moment stderr is not a terminal ([ADR
+0011](docs/decisions/0011-bubbletea-for-progress.md)). It needed a rendering-free
+seam in the domain — `scan.Observer` — and it is why the module now has 33
+dependencies rather than 3. On a terminal, `pindrop scan` also offers to install
+what is missing rather than only explaining it; in CI nothing prompts and the
+behavior is byte-identical to before.
+
 Next: [docs/product/roadmap.md](docs/product/roadmap.md).
 
 ## Read before changing
@@ -64,6 +83,7 @@ Next: [docs/product/roadmap.md](docs/product/roadmap.md).
 make build     # frontend + binary → ./bin/pindrop
 make check     # lint + test, Go and frontend
 make test      # go test -race ./...
+make manifest  # regenerate the pinned scanner digests after a version bump
 make run-scan  # scan the bundled fixture
 make run-scan-secrets  # scan a throwaway credential dir (the fixture has no secret)
 ```
@@ -153,6 +173,67 @@ TruffleHog's own `Redacted` field is *not* safe to forward verbatim — for
 capped before display. Do not key identity on `Redacted` either: it is populated
 by some detectors and not others, so a conditional there means somebody else's
 release changes our fingerprints.
+
+**Binary resolution has four locations, and adapters must not reimplement it.**
+`toolpath.Lookup` searches an explicit `--<tool>-binary` path, then PATH, then
+beside the pindrop binary, then `~/.pindrop/bin` where `pindrop setup` installs.
+That function used to be copy-pasted into all four adapters and had already
+drifted. PATH deliberately beats the managed directory, so a user's own Trivy
+keeps winning — which also means an *old* Trivy on PATH still trips the version
+floor rather than falling through to ours. `pindrop setup --check` prints the
+winning origin per tool precisely because that case is otherwise baffling.
+
+**Bumping a scanner version means running `make manifest`.** `pindrop setup`
+verifies every download against a SHA-256 digest committed in
+`internal/toolinstall/manifest.json`; a stale manifest is not a warning, it is
+every install failing on a checksum mismatch. A test asserts the manifest agrees
+with the Makefile's pins, so forgetting fails `make test` rather than a user's
+first run. Opengrep publishes no upstream checksum file — only sigstore
+signatures — so its digest is trust-on-first-pin and the generator prints a
+`cosign verify-blob` command to check by hand
+([ADR 0010](docs/decisions/0010-managed-scanner-installation.md)).
+
+**The manifest gives immutability, not provenance.** It stops an asset being
+swapped after we pinned it, which is the retagged-release case the Trivy incidents
+were. It cannot detect a release that was already malicious when the digest was
+captured. Do not oversell it in user-facing text.
+
+**Never add a `--skip-verify` to setup.** A security product with an escape hatch
+around its own integrity check has not shipped one. `--<tool>-binary /path`
+already covers the legitimate need.
+
+**Opengrep needs a UTF-8 locale forced into its environment.** It is a
+Nuitka-compiled CPython program, so it derives its text encoding from the locale;
+with no `LANG`/`LC_ALL` — cron, systemd, slim containers, some CI runners — that
+default is ASCII, and reading a bundled rule file containing an em dash dies with
+`UnicodeDecodeError`. The symptom is the worst kind: the scan *succeeds* and
+silently reports zero code findings. `utf8Env` sets `LC_ALL=C.UTF-8` unless the
+inherited locale is already UTF-8. `PYTHONUTF8=1` does **not** work — the Nuitka
+build ignores it. Note `--version` reads no rules, so Preflight cannot catch this.
+
+**The scan display renders to stderr, and any concurrent stderr writer shreds
+it.** stdout carries the report and must stay pipeable into `jq`. This works only
+because every adapter buffers its child's stdout *and* stderr and OSV runs with
+`--verbosity error` — an adapter that lets a child write to stderr would corrupt
+every frame. `--log-level debug` therefore forces plain mode, since slog also
+writes there. `internal/tui` is the only package allowed to import bubbletea or
+lipgloss ([ADR 0011](docs/decisions/0011-bubbletea-for-progress.md)).
+
+**The progress footer says "raw findings" on purpose.** It sums what each scanner
+reported, before cross-tool dedup, so it is legitimately larger than the count the
+table prints — 25 raw against 19 on the fixture. Renaming it to "findings" would
+make the report look like it lost some.
+
+**`scan.Observer` must stay free of presentation.** No colors, no display
+strings, no cross-scanner ordering guarantee. Per-scanner ordering is total
+because one scanner's events come from its own goroutine; ordering between
+scanners is not, and a renderer must not assume it. Observers are called from
+every scanner goroutine, so they must be concurrency-safe and must not block.
+
+**Skipped scanners are indexed after the usable ones, not at their registry
+index.** `scan.Run` reports on the usable slice, which is re-indexed from zero, so
+a skipped row placed at its registry index gets overwritten by whichever usable
+scanner lands on the same row. `replaySkipped` starts at `len(usable)`.
 
 **`web/dist/.gitkeep` must stay committed** or `//go:embed all:dist` fails to
 compile on a fresh clone.

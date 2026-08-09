@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 )
 
 // Run executes every scanner against target concurrently and returns their
@@ -17,19 +18,43 @@ import (
 // rather than treating a partial scan as no scan.
 //
 // Run returns early only if ctx is cancelled, which cancels the scanners too.
-func Run(ctx context.Context, scanners []Scanner, target Target) ([]Result, error) {
+//
+// Pass [WithObserver] to receive progress [Event] values as scanners start and
+// finish. Every scanner emits exactly one terminal event.
+func Run(ctx context.Context, scanners []Scanner, target Target, opts ...RunOption) ([]Result, error) {
+	cfg := newRunConfig(opts)
+
 	results := make([]Result, len(scanners))
 	errs := make([]error, len(scanners))
+
+	// Announce the whole set before starting any of it, so a renderer can draw
+	// every row on its first frame instead of growing the list as goroutines are
+	// scheduled — which would make the display jump.
+	for i, s := range scanners {
+		cfg.notify(Event{Scanner: s.Name(), Index: i, Phase: PhaseQueued})
+	}
 
 	var wg sync.WaitGroup
 	for i, s := range scanners {
 		wg.Go(func() {
+			cfg.notify(Event{Scanner: s.Name(), Index: i, Phase: PhaseRunning})
+			started := time.Now()
+
 			res, err := s.Scan(ctx, target)
 			if err != nil {
 				errs[i] = fmt.Errorf("%s: %w", s.Name(), err)
+				cfg.notify(Event{
+					Scanner: s.Name(), Index: i, Phase: PhaseFailed,
+					Duration: time.Since(started), Err: err,
+				})
 				return
 			}
+
 			results[i] = res
+			cfg.notify(Event{
+				Scanner: s.Name(), Index: i, Phase: PhaseDone,
+				Findings: len(res.Findings), Duration: res.Duration,
+			})
 		})
 	}
 	wg.Wait()
@@ -65,6 +90,10 @@ func Preflight(ctx context.Context, scanners []Scanner) error {
 // Usable partitions scanners into those that can run and a joined error
 // describing those that cannot.
 //
+// Pass [WithObserver] to receive a [PhaseSkipped] event per unavailable scanner,
+// so a renderer can show it as a dimmed row rather than leaving the user to
+// reconcile a block of text above the display with the rows below it.
+//
 // This exists because "one of several scanners is not installed" is not the same
 // failure as "no scanner is installed". Pindrop's first run has to work with
 // nothing set up beyond a single tool, so an optional second scanner going
@@ -73,7 +102,8 @@ func Preflight(ctx context.Context, scanners []Scanner) error {
 // slice is fatal.
 //
 // The returned scanners keep their original relative order.
-func Usable(ctx context.Context, scanners []Scanner) ([]Scanner, error) {
+func Usable(ctx context.Context, scanners []Scanner, opts ...RunOption) ([]Scanner, error) {
+	cfg := newRunConfig(opts)
 	errs := make([]error, len(scanners))
 
 	var wg sync.WaitGroup
@@ -86,9 +116,13 @@ func Usable(ctx context.Context, scanners []Scanner) ([]Scanner, error) {
 
 	usable := make([]Scanner, 0, len(scanners))
 	for i, s := range scanners {
-		if errs[i] == nil {
-			usable = append(usable, s)
+		if errs[i] != nil {
+			cfg.notify(Event{
+				Scanner: s.Name(), Index: i, Phase: PhaseSkipped, Err: errs[i],
+			})
+			continue
 		}
+		usable = append(usable, s)
 	}
 
 	return usable, errors.Join(errs...)
