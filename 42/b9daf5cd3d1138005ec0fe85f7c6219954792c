@@ -1,0 +1,19 @@
+docs
+  s_670a3779306575::t_2d4418a031c9b5 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "42b9daf5cd3d1138005ec0fe85f7c6219954792c",
+  "prompts": {},
+  "sessions": {
+    "s_670a3779306575": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3d992432-3e39-4b56-8208-034ecfce01c6",
+        "model": "composer-2.5"
+      },
+      "human_author": "AnimeshRy <ani16september@gmail.com>"
+    }
+  }
+}
