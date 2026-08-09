@@ -29,7 +29,8 @@ const dirName = ".pindrop"
 // Home returns the directory Pindrop keeps its own machine-global state in —
 // today, the scanner binaries `pindrop setup` installs.
 //
-// PINDROP_HOME wins if set. Otherwise it is ~/.pindrop, on every platform.
+// Resolution order: PINDROP_HOME if set, then the home path in the persisted
+// settings file (see [SaveHomeOverride]), otherwise ~/.pindrop.
 //
 // The XDG base directory spec is deliberately not followed. A single fixed path
 // can be printed literally in every error message, install prompt, and doc, and
@@ -52,11 +53,11 @@ func Home() (string, error) {
 		return abs, nil
 	}
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("locating your home directory; set %s to choose one: %w", HomeEnv, err)
+	if s := LoadSettings(); s.Home != "" {
+		return s.Home, nil
 	}
-	return filepath.Join(home, dirName), nil
+
+	return DefaultHome()
 }
 
 // Dir returns the directory `pindrop setup` installs scanner binaries into.

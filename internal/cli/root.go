@@ -54,6 +54,7 @@ issue keeps its identity across scans even when the surrounding code moves.`),
 
 	root.AddCommand(
 		newSetupCommand(&g),
+		newUninstallCommand(&g),
 		newScanCommand(&g),
 		newServeCommand(&g),
 		newStatusCommand(&g),

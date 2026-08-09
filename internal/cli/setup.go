@@ -80,6 +80,10 @@ func runSetup(ctx context.Context, opts *setupOptions) error {
 		return err
 	}
 
+	if err := maybeAskSetupQuestions(opts, manifest); err != nil {
+		return err
+	}
+
 	if err := validateOnly(manifest, opts.only); err != nil {
 		return err
 	}
@@ -100,6 +104,125 @@ func runSetup(ctx context.Context, opts *setupOptions) error {
 		return runCheck(ctx, selected, unsupported, dir, record)
 	}
 	return runInstall(ctx, selected, unsupported, dir, home, record, opts)
+}
+
+// maybeAskSetupQuestions runs a short first-run questionnaire on a terminal.
+//
+// It does not run when the user passed --yes, --check, or --dir, when
+// PINDROP_HOME is set, or when settings already exist — a provisioned machine
+// should not be re-interviewed on every setup.
+func maybeAskSetupQuestions(opts *setupOptions, manifest *toolinstall.Manifest) error {
+	if opts.yes || opts.check || opts.dir != "" {
+		return nil
+	}
+	if os.Getenv(toolpath.HomeEnv) != "" {
+		return nil
+	}
+	if toolpath.SettingsExist() {
+		return nil
+	}
+	if !isTerminal(os.Stdin) || !isTerminal(os.Stdout) {
+		return nil
+	}
+
+	defaultHome, err := toolpath.DefaultHome()
+	if err != nil {
+		return err
+	}
+
+	printf(os.Stdout, "\nFirst-time setup — two quick questions.\n\n")
+	printf(os.Stdout, "Store scanner binaries and scan history in %s?\n",
+		toolpath.Display(defaultHome))
+	printf(os.Stdout, "[Y/n, or enter a different directory path] ")
+
+	homeAnswer, err := readLine(os.Stdin)
+	if err != nil {
+		return err
+	}
+	homeAnswer = strings.TrimSpace(homeAnswer)
+	switch strings.ToLower(homeAnswer) {
+	case "", "y", "yes":
+		// Default ~/.pindrop — nothing to persist.
+	case "n", "no":
+		printf(os.Stdout, "Directory path: ")
+		path, err := readLine(os.Stdin)
+		if err != nil {
+			return err
+		}
+		path = strings.TrimSpace(path)
+		if path == "" {
+			return errors.New("cancelled")
+		}
+		if err := saveSetupHome(path); err != nil {
+			return err
+		}
+	default:
+		if err := saveSetupHome(homeAnswer); err != nil {
+			return err
+		}
+	}
+
+	if len(opts.only) == 0 {
+		names := manifest.Names()
+		printf(os.Stdout, "\nInstall all %d scanners (%s)?\n",
+			len(names), strings.Join(names, ", "))
+		printf(os.Stdout, "[Y/n, or a comma-separated list] ")
+
+		onlyAnswer, err := readLine(os.Stdin)
+		if err != nil {
+			return err
+		}
+		onlyAnswer = strings.TrimSpace(onlyAnswer)
+		switch strings.ToLower(onlyAnswer) {
+		case "", "y", "yes":
+			// All scanners — opts.only stays nil.
+		case "n", "no":
+			return errors.New("cancelled")
+		default:
+			parts := strings.Split(onlyAnswer, ",")
+			opts.only = make([]string, 0, len(parts))
+			for _, p := range parts {
+				p = strings.TrimSpace(p)
+				if p != "" {
+					opts.only = append(opts.only, p)
+				}
+			}
+			if len(opts.only) == 0 {
+				return errors.New("cancelled")
+			}
+		}
+	}
+
+	printf(os.Stdout, "\n")
+	return nil
+}
+
+func saveSetupHome(path string) error {
+	if strings.HasPrefix(path, "~") {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("expanding ~ in %q: %w", path, err)
+		}
+		if path == "~" {
+			path = home
+		} else {
+			path = filepath.Join(home, strings.TrimPrefix(path, "~/"))
+		}
+	}
+	if err := toolpath.SaveHomeOverride(path); err != nil {
+		return err
+	}
+	printf(os.Stdout, "Using %s for Pindrop data.\n", toolpath.Display(path))
+	return nil
+}
+
+// readLine reads one line from in, without the trailing newline.
+func readLine(in io.Reader) (string, error) {
+	line, err := bufio.NewReader(in).ReadString('\n')
+	if err != nil && !errors.Is(err, io.EOF) {
+		return "", fmt.Errorf("reading your answer: %w", err)
+	}
+	return strings.TrimSuffix(line, "\n"), nil
 }
 
 // setupDirs resolves the install directory and the home directory the install

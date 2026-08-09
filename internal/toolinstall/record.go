@@ -11,6 +11,11 @@ import (
 // recordName is the file recording what setup installed, inside PINDROP_HOME.
 const recordName = "installed.json"
 
+// RecordPath returns the install record path inside home.
+func RecordPath(home string) string {
+	return filepath.Join(home, recordName)
+}
+
 // recordSchema is the layout version of that file.
 const recordSchema = 1
 

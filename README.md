@@ -77,6 +77,10 @@ made executable.
 
 - **~215 MB**, once. It prints the sizes and the hosts and asks before fetching
   anything; `--yes` skips the prompt.
+- **First run on a terminal** asks where to store data (`~/.pindrop` by default)
+  and which scanners to install. A custom data directory is saved in
+  `~/.config/pindrop/config.json` (or the platform config dir) and used on
+  every later run unless `PINDROP_HOME` is set.
 - **Idempotent.** A second run installs nothing and makes *no network requests*,
   so there is no separate offline mode.
 - **Self-contained.** Nothing is written outside `~/.pindrop`, no package manager
@@ -86,6 +90,17 @@ made executable.
 
 Set `PINDROP_HOME` to put it somewhere else, or `--dir` to install into a
 directory you choose.
+
+### Removing what setup installed
+
+```bash
+./bin/pindrop uninstall              # remove scanners Pindrop installed; keeps scan history
+./bin/pindrop uninstall --yes        # no confirmation for scanner removal
+./bin/pindrop uninstall --purge-history   # also delete ~/.pindrop/scans
+```
+
+The `pindrop` binary itself is not removed — the command prints its path so you
+can delete it manually.
 
 ### Checking what you actually have
 
