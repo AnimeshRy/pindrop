@@ -1,0 +1,9 @@
+[[[ nonsense
+	url = https://evil.example.com/stray/one.git
+[remote "origin"
+	url = https://evil.example.com/stray/two.git
+]]]
+no-equals-here
+= empty key
+[remote "origin"]
+	url

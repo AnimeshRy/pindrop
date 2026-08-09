@@ -194,10 +194,10 @@ func (s *Scanner) Scan(ctx context.Context, target scan.Target) (scan.Result, er
 
 	started := time.Now()
 
-	patterns := append(append([]string(nil), defaultExcludes...), s.excludePaths...)
 	if err := validateExcludes(s.excludePaths); err != nil {
 		return scan.Result{}, err
 	}
+	patterns := excludePatterns(target.Excludes, s.excludePaths)
 
 	excludeFile, cleanup, err := writeExcludeFile(patterns)
 	// Deferred here rather than inside run: the file has to outlive cmd.Wait.

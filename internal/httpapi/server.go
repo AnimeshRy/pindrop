@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/AnimeshRy/pindrop/internal/buildinfo"
+	"github.com/AnimeshRy/pindrop/internal/history"
 	"github.com/AnimeshRy/pindrop/internal/report"
 )
 
@@ -35,8 +36,17 @@ type Config struct {
 	// development.
 	Assets fs.FS
 
-	// Source supplies findings. Required.
+	// Source supplies the single report served by /api/v1/findings and
+	// /api/v1/summary. Required unless Store is set, in which case it defaults
+	// to the newest run of the most recently scanned repository.
 	Source FindingSource
+
+	// Store supplies scan history. When it is nil — `pindrop serve --results
+	// foo.json`, which has one report and no history — the /api/v1/repos routes
+	// answer 404 with an explanation rather than an empty list. An empty list
+	// would be a lie that reads as lost data, and the dashboard needs to tell
+	// the two apart to fall back to its single-report view.
+	Store history.Store
 }
 
 // Server routes dashboard and API requests.
@@ -46,8 +56,11 @@ type Server struct {
 
 // New returns a Server wired to cfg.
 func New(cfg Config) (*Server, error) {
+	if cfg.Source == nil && cfg.Store == nil {
+		return nil, errors.New("httpapi: Source or Store is required")
+	}
 	if cfg.Source == nil {
-		return nil, errors.New("httpapi: Source is required")
+		cfg.Source = latestRunSource{store: cfg.Store}
 	}
 
 	s := &Server{mux: http.NewServeMux()}
@@ -66,6 +79,8 @@ func (s *Server) routes(cfg Config) {
 	s.mux.HandleFunc("GET /api/v1/healthz", handleHealth)
 	s.mux.HandleFunc("GET /api/v1/findings", handleFindings(cfg.Source))
 	s.mux.HandleFunc("GET /api/v1/summary", handleSummary(cfg.Source))
+
+	s.historyRoutes(cfg.Store)
 
 	// The catch-all must come last in specificity terms; ServeMux resolves by
 	// pattern precision rather than registration order, so /api/v1/... still

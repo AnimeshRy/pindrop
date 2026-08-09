@@ -102,8 +102,13 @@ type sarifRegion struct {
 
 // SARIF writes results as a SARIF 2.1.0 log.
 func SARIF(w io.Writer, results []scan.Result) error {
-	findings := scan.Findings(results)
+	return renderSARIF(w, scan.Findings(results))
+}
 
+// renderSARIF is the shared body of [SARIF] and the SARIF arm of
+// [WriteDocument]. A SARIF log carries no per-scanner timing, so the flattened
+// finding set is all either caller needs to supply.
+func renderSARIF(w io.Writer, findings []scan.Finding) error {
 	rules := make([]sarifRule, 0, len(findings))
 	ruleIndex := make(map[string]int, len(findings))
 	sarifResults := make([]sarifResult, 0, len(findings))

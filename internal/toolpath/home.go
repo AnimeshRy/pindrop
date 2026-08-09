@@ -38,8 +38,11 @@ const dirName = ".pindrop"
 // "where did it put things" into a support question. ~/.cargo, ~/.rustup and
 // ~/.docker set the precedent. See ADR 0011.
 //
-// Note this is machine-global state, distinct from the per-repository .pindrop/
-// directory that holds scan reports. Same name, different level, on purpose.
+// Everything Pindrop keeps for itself lives under here: the scanner binaries in
+// bin/, the install record beside them, and the scan history in scans/. History
+// is machine-global rather than per-repository on purpose — a user scans a
+// checkout they do not necessarily want to write into, and a dashboard that can
+// list every repository ever scanned needs one place to look.
 func Home() (string, error) {
 	if dir := os.Getenv(HomeEnv); dir != "" {
 		abs, err := filepath.Abs(dir)
@@ -73,6 +76,36 @@ func EnsureDir() (string, error) {
 		return "", err
 	}
 	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return "", fmt.Errorf("creating %s: %w", dir, err)
+	}
+	return dir, nil
+}
+
+// ScansDir returns the directory holding scan history. It creates nothing; see
+// [EnsureScansDir].
+//
+// History sits beside the scanner binaries rather than inside the repository
+// being scanned, so that scanning a checkout never writes to it and so that one
+// directory holds every repository a user has ever scanned.
+func ScansDir() (string, error) {
+	home, err := Home()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, "scans"), nil
+}
+
+// EnsureScansDir returns [ScansDir], creating it if it does not exist.
+//
+// It is created 0o700 rather than 0o750, unlike [EnsureDir]: scan history holds
+// findings, including source snippets and file paths from private repositories,
+// where the bin directory holds public release artifacts.
+func EnsureScansDir() (string, error) {
+	dir, err := ScansDir()
+	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", fmt.Errorf("creating %s: %w", dir, err)
 	}
 	return dir, nil

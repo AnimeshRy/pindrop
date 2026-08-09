@@ -56,6 +56,8 @@ issue keeps its identity across scans even when the surrounding code moves.`),
 		newSetupCommand(&g),
 		newScanCommand(&g),
 		newServeCommand(&g),
+		newStatusCommand(&g),
+		newHistoryCommand(&g),
 		newVersionCommand(),
 	)
 

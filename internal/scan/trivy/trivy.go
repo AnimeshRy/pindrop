@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -193,7 +194,7 @@ func (s *Scanner) Scan(ctx context.Context, target scan.Target) (scan.Result, er
 
 	started := time.Now()
 
-	raw, err := s.run(ctx, target.Path)
+	raw, err := s.run(ctx, target.Path, target.Excludes)
 	if err != nil {
 		return scan.Result{}, err
 	}
@@ -212,8 +213,66 @@ func (s *Scanner) Scan(ctx context.Context, target scan.Target) (scan.Result, er
 	}, nil
 }
 
+// licenseSourceDirs are directories Trivy must be allowed to walk when the
+// license sub-scanner is enabled.
+//
+// Trivy identifies npm licenses by reading LICENSE files under node_modules,
+// and Go licenses from vendor/ when it exists. Skipping them therefore trades
+// scan time for the copyleft findings actionableLicense exists to surface —
+// not a trade this product should make silently. When "license" is off they are
+// skipped like anything else.
+//
+// Dropping them from the skip list does not put their findings in the report:
+// scan.Run applies the same exclusions to everything that comes back, so a
+// secret Trivy finds under node_modules is still filtered. Only the wall-clock
+// cost differs.
+var licenseSourceDirs = []string{"node_modules", "vendor", ".yarn"}
+
+// args builds the Trivy command line.
+//
+// Split out from [Scanner.run] so that the invariants below are enforced by
+// tests rather than asserted in comments.
+func (s *Scanner) args(path string, excludes scan.Excludes) []string {
+	args := []string{
+		"fs",
+		"--scanners", strings.Join(s.scanners, ","),
+		"--format", "json",
+		"--quiet",
+		// Without this, Trivy exits non-zero when it finds vulnerabilities,
+		// making "the tool failed" indistinguishable from "the code has bugs".
+		"--exit-code", "0",
+	}
+	if s.cacheDir != "" {
+		args = append(args, "--cache-dir", s.cacheDir)
+	}
+	args = append(args, s.skipArgs(excludes)...)
+	return append(args, path)
+}
+
+// skipArgs returns the exclusion flags for this invocation, holding back the
+// directories the license sub-scanner needs when it is enabled.
+func (s *Scanner) skipArgs(excludes scan.Excludes) []string {
+	if !s.licensesEnabled() {
+		return excludes.TrivyArgs()
+	}
+
+	kept := make([]string, 0, len(excludes.Dirs))
+	for _, d := range excludes.Dirs {
+		if !slices.Contains(licenseSourceDirs, d) {
+			kept = append(kept, d)
+		}
+	}
+	excludes.Dirs = kept
+	return excludes.TrivyArgs()
+}
+
+// licensesEnabled reports whether the license sub-scanner will run.
+func (s *Scanner) licensesEnabled() bool {
+	return slices.Contains(s.scanners, "license")
+}
+
 // run invokes Trivy and returns its raw JSON report.
-func (s *Scanner) run(ctx context.Context, path string) ([]byte, error) {
+func (s *Scanner) run(ctx context.Context, path string, excludes scan.Excludes) ([]byte, error) {
 	// Resolve again rather than trusting PATH here: Scan must work even when it
 	// is called without a prior Preflight, and the sibling-directory fallback
 	// only applies to a resolved path.
@@ -227,22 +286,8 @@ func (s *Scanner) run(ctx context.Context, path string) ([]byte, error) {
 		}
 	}
 
-	args := []string{
-		"fs",
-		"--scanners", strings.Join(s.scanners, ","),
-		"--format", "json",
-		"--quiet",
-		// Without this, Trivy exits non-zero when it finds vulnerabilities,
-		// making "the tool failed" indistinguishable from "the code has bugs".
-		"--exit-code", "0",
-	}
-	if s.cacheDir != "" {
-		args = append(args, "--cache-dir", s.cacheDir)
-	}
-	args = append(args, path)
-
 	var stdout, stderr bytes.Buffer
-	cmd := exec.CommandContext(ctx, binary, args...)
+	cmd := exec.CommandContext(ctx, binary, s.args(path, excludes)...)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 

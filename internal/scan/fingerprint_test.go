@@ -58,6 +58,19 @@ func TestFingerprintStability(t *testing.T) {
 			},
 		},
 		{
+			// The version is the finding's current state, not its identity.
+			// A partial upgrade — to a version that is still subject to the
+			// same advisory — is the most common way a dependency finding
+			// changes, and it must read as one unresolved issue rather than
+			// as one resolved and one new.
+			name: "package bumped to a version the advisory still covers",
+			base: vulnFinding(),
+			mutate: func(f scan.Finding) scan.Finding {
+				f.Package.Version = "7.0.4"
+				return f
+			},
+		},
+		{
 			name: "snippet reindented",
 			base: codeFinding(),
 			mutate: func(f scan.Finding) scan.Finding {
@@ -144,14 +157,6 @@ func TestFingerprintDistinguishes(t *testing.T) {
 			base: vulnFinding(),
 			mutate: func(f scan.Finding) scan.Finding {
 				f.RuleID = "CVE-2024-37890"
-				return f
-			},
-		},
-		{
-			name: "package upgraded to a different version",
-			base: vulnFinding(),
-			mutate: func(f scan.Finding) scan.Finding {
-				f.Package.Version = "7.0.4"
 				return f
 			},
 		},

@@ -312,15 +312,20 @@ func TestValidateExcludes(t *testing.T) {
 func TestDefaultExcludesCompile(t *testing.T) {
 	t.Parallel()
 
-	if err := validateExcludes(defaultExcludes); err != nil {
-		t.Fatalf("defaultExcludes do not compile: %v", err)
+	if err := validateExcludes(excludePatterns(scan.DefaultExcludes(), nil)); err != nil {
+		t.Fatalf("the default patterns do not compile: %v", err)
 	}
 }
 
-// .git must be excluded. trufflehog filesystem walks the object store, and a
-// secret reported at .git/objects/pack/pack-<sha>.pack has a path that churns on
-// every gc — which, since the path is a fingerprint input, would report the
-// finding as fixed and reintroduced forever.
+// .git must be excluded, and it comes from the shared scan.Excludes set rather
+// than a list local to this adapter. trufflehog filesystem walks the object
+// store, and a secret reported at .git/objects/pack/pack-<sha>.pack has a path
+// that churns on every gc — which, since the path is a fingerprint input, would
+// report the finding as fixed and reintroduced forever.
+//
+// Lockfiles must be excluded too, but from secretNoiseExcludes: they are
+// dependency manifests, so excluding them in the shared set would blind Trivy
+// and OSV-Scanner to every dependency in the tree.
 func TestDefaultExcludesCoverGitAndLockfiles(t *testing.T) {
 	t.Parallel()
 
@@ -354,7 +359,7 @@ func TestDefaultExcludesCoverGitAndLockfiles(t *testing.T) {
 
 func matchesAnyExclude(t *testing.T, path string) bool {
 	t.Helper()
-	for _, pattern := range defaultExcludes {
+	for _, pattern := range excludePatterns(scan.DefaultExcludes(), nil) {
 		re, err := regexp.Compile(pattern)
 		if err != nil {
 			t.Fatalf("pattern %q does not compile: %v", pattern, err)
@@ -403,13 +408,13 @@ func TestWriteExcludeFile(t *testing.T) {
 func TestWriteExcludeFileIsolated(t *testing.T) {
 	t.Parallel()
 
-	first, cleanupFirst, err := writeExcludeFile(defaultExcludes)
+	first, cleanupFirst, err := writeExcludeFile(secretNoiseExcludes)
 	if err != nil {
 		t.Fatalf("writeExcludeFile() error = %v", err)
 	}
 	defer cleanupFirst()
 
-	second, cleanupSecond, err := writeExcludeFile(defaultExcludes)
+	second, cleanupSecond, err := writeExcludeFile(secretNoiseExcludes)
 	if err != nil {
 		t.Fatalf("writeExcludeFile() error = %v", err)
 	}

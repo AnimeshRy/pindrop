@@ -18,7 +18,25 @@ the product.
 
 Full context: [docs/product/vision.md](docs/product/vision.md).
 
-## Current state — Phase 0 complete
+## Current state — Phase 1 in progress
+
+`pindrop scan` now **persists every run** to `~/.pindrop/scans/` and diffs it
+against the previous one, which is the first thing here a shell script cannot do.
+`internal/history` owns the store behind a `Store` interface shaped so the JSON
+backend can be swapped for SQLite without touching callers (context on every
+method, query structs with keyset pagination, `ErrNotFound` as a package
+sentinel rather than `os.ErrNotExist`, no paths or `io.Reader` on the interface).
+Repo identity is the **canonical path of the git work-tree root**, never the git
+remote: two live checkouts of one repository have genuinely different findings,
+and merging them by remote would make every branch switch report a wave of
+fixed-and-regressed. `internal/vcs` reads `.git` directly and never executes git.
+
+Exclusions are now one shared set (`scan.Excludes`) rather than two hand-copied
+lists. On this repository that took 43 findings to 24 and halved scan CPU time;
+the bundled fixture's counts did not move, which is the regression check that
+matters.
+
+
 
 `pindrop scan` (Trivy, OSV-Scanner, Opengrep, and TruffleHog) and `pindrop serve`
 (embedded React dashboard).
@@ -100,11 +118,39 @@ mise; `make lint-go` already resolves whichever applies.
 **`internal/scan` must not import any adapter.** `trivy` imports `scan`; the
 registry lives in `internal/cli`. Reversing that is an import cycle.
 
-**Fingerprints exclude line numbers and scanner names, on purpose.** Adding
-either would report every finding as fixed-and-reintroduced after any edit
-above it, and would stop two tools' reports of one problem from merging.
-Changing `scan.Fingerprint` orphans every stored triage decision — treat it as a
-data migration.
+**Fingerprints exclude line numbers, scanner names, and dependency versions, on
+purpose.** Adding any of them would report every finding as fixed-and-reintroduced
+after an unrelated change, and would stop two tools' reports of one problem from
+merging. The version case is the least obvious: bumping `golang.org/x/net` from
+`v0.35.0` to `v0.35.1` against an advisory not fixed until `v0.36.0` would
+otherwise read as one issue resolved and one new. The version is the finding's
+current *state*, not its identity; it stays on `Finding.Package` as displayed
+data, and `FixedIn` drives remediation. The accepted cost is that two versions of
+one package in one manifest, under one advisory, merge into one finding — the
+same trade `locationIdentity` already makes for snippets. Changing
+`scan.Fingerprint` orphans every stored triage decision — treat it as a data
+migration.
+
+**A finding that vanished is not necessarily fixed, and three separate guards
+enforce that.** This is the highest-bug-density feature in this category — the
+prior art is littered with tools that mitigated findings on reimporting a
+byte-identical file. `history.advance` only concludes `fixed` when (1) at least
+one scanner that previously reported the fingerprint actually ran, or
+`--scanners vuln` marks every secret and code finding fixed; (2) the run's
+`ScopeHash` is unchanged, which covers both the exclusion set and *the directory
+scanned* — repo identity is the work-tree root, so `pindrop scan ./services/api`
+and `pindrop scan .` record against the same repo and the narrower run would
+otherwise resolve everything outside it; and (3) the previous run's file was
+readable. Unknown is not fixed. User-facing text says **"no longer detected"**,
+never "fixed" — a scanner ceasing to report something is a weaker claim than a
+fix, and overstating it is how a security tool teaches people to discount it.
+
+**`pindrop scan` persists the UNFILTERED results.** `--min-severity` and
+`--scanners` narrow what the user is *shown*, not what was true. Recording the
+narrowed set makes the next default scan report every dropped finding as newly
+reintroduced. `recordHistory` runs before `filterBySeverity` for exactly this
+reason, and a persistence failure is a warning, never a scan failure —
+`--fail-on` is about findings, not about disk state.
 
 **Excluding the scanner name is not enough to merge two tools.** They also
 disagree on advisory IDs (`CVE-2025-22870` vs `GO-2025-3503`), ecosystem names
@@ -144,6 +190,29 @@ And never pass `--error`: findings exit 0 here, so non-zero unambiguously means
 the tool broke. Rules are first-party by necessity — every existing corpus
 forbids commercial use ([ADR
 0007](docs/decisions/0007-first-party-opengrep-rules.md)).
+
+**One exclusion set, four incompatible syntaxes, and a backstop.**
+`scan.Excludes` lives on `Target`; each adapter translates it. The four
+vocabularies genuinely differ, so "all four honour the same set" cannot be
+established by four independent correct translations — `scan.Run` applies
+`Excludes.Filter` to what each scanner returns, and *that* is the correctness
+mechanism. Three translation traps: Trivy's doublestar `**/x` does **not** match
+`./x` at the scan root, so every pattern is emitted twice; Opengrep uses
+gitignore syntax where a bare `env` also matches a *file* named env; and an
+unanchored TruffleHog regex `(^|/)env` matches `.env` as a substring. The
+trailing slash on directory patterns is the entire defence, and
+`TestEnvFileIsNeverExcluded` is why. **`.env` files, `*.tfstate`, `test/` and
+`.vscode/` are deliberately NOT excluded** — they are among the highest-yield
+real credential locations, and excluding them would make secret scanning worse
+than `git grep`.
+
+**Trivy's license sub-scanner needs `node_modules` and `vendor`.** `trivy fs`
+disables `TypeIndividualPkgs`, so skipping those costs zero *vulnerability*
+findings — but Trivy identifies npm and Go licenses by reading LICENSE files
+inside them, so a blanket skip silently deletes the copyleft findings
+`actionableLicense` exists to surface. `licenseSourceDirs` holds them back from
+`--skip-dirs` when licenses are on; `scan.Run`'s filter drops their noise anyway,
+so only the walk cost differs.
 
 **Adapters must filter, not just forward.** Trivy's license scanner classifies
 every license it finds; forwarding all of them produced 24 MIT/Apache entries

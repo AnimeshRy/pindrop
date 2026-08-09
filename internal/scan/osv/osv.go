@@ -174,7 +174,7 @@ func (s *Scanner) Scan(ctx context.Context, target scan.Target) (scan.Result, er
 
 	started := time.Now()
 
-	raw, err := s.run(ctx, target.Path)
+	raw, err := s.run(ctx, target.Path, target.Excludes)
 	if err != nil {
 		return scan.Result{}, err
 	}
@@ -199,8 +199,36 @@ func (s *Scanner) Scan(ctx context.Context, target scan.Target) (scan.Result, er
 	}, nil
 }
 
+// args builds the OSV-Scanner command line.
+//
+// Split out from [Scanner.run] so that the invariants below are enforced by
+// tests rather than asserted in comments.
+func (s *Scanner) args(path string, excludes scan.Excludes) []string {
+	args := []string{
+		"scan", "source",
+		"--format", "json",
+		"--recursive",
+		// Progress and walk statistics go to stderr at the default level and are
+		// noise in a wrapped invocation. The scan display also renders to
+		// stderr, and a child writing there would shred every frame.
+		"--verbosity", "error",
+	}
+	if !s.callAnalysis {
+		args = append(args, "--no-call-analysis", "all")
+	}
+	if s.offline {
+		args = append(args, "--offline-vulnerabilities")
+	}
+	// Directories only, and the flag carries an experimental- prefix upstream,
+	// so this is a speed optimization rather than the correctness mechanism —
+	// scan.Run filters what comes back regardless. TestArgs pins the flag name
+	// so an upstream rename fails a test instead of a user's scan.
+	args = append(args, excludes.OSVArgs()...)
+	return append(args, path)
+}
+
 // run invokes OSV-Scanner and returns its raw JSON report.
-func (s *Scanner) run(ctx context.Context, path string) ([]byte, error) {
+func (s *Scanner) run(ctx context.Context, path string, excludes scan.Excludes) ([]byte, error) {
 	binary, err := s.resolve()
 	if err != nil {
 		return nil, &scan.UnavailableError{
@@ -211,24 +239,8 @@ func (s *Scanner) run(ctx context.Context, path string) ([]byte, error) {
 		}
 	}
 
-	args := []string{
-		"scan", "source",
-		"--format", "json",
-		"--recursive",
-		// Progress and walk statistics go to stderr at the default level and are
-		// noise in a wrapped invocation.
-		"--verbosity", "error",
-	}
-	if !s.callAnalysis {
-		args = append(args, "--no-call-analysis", "all")
-	}
-	if s.offline {
-		args = append(args, "--offline-vulnerabilities")
-	}
-	args = append(args, path)
-
 	var stdout, stderr bytes.Buffer
-	cmd := exec.CommandContext(ctx, binary, args...)
+	cmd := exec.CommandContext(ctx, binary, s.args(path, excludes)...)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 

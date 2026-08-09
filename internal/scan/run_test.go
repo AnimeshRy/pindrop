@@ -148,3 +148,66 @@ func TestFindingsDedupsAcrossResults(t *testing.T) {
 		t.Errorf("Agreement() = %d, want 2", agreement)
 	}
 }
+
+// TestRunAppliesExcludes covers the backstop. A scanner that ignores the
+// exclusion flags it was passed — or a tool whose flag syntax cannot express
+// what we asked for — must still not get excluded paths into the report.
+func TestRunAppliesExcludes(t *testing.T) {
+	t.Parallel()
+
+	// stubScanner reports whatever it was built with, regardless of target,
+	// which is exactly the adapter behaviour this guards against.
+	noisy := stubScanner{name: "noisy", findings: []scan.Finding{
+		{RuleID: "kept", Location: scan.Location{Path: "internal/scan/run.go"}},
+		{RuleID: "vendored", Location: scan.Location{Path: "web/node_modules/x/i.js"}},
+		{RuleID: "minified", Location: scan.Location{Path: "web/dist/app.min.js"}},
+	}}
+
+	target := scan.Target{Path: ".", Excludes: scan.DefaultExcludes()}
+
+	var events []scan.Event
+	results, err := scan.Run(t.Context(), []scan.Scanner{noisy}, target,
+		scan.WithObserver(scan.ObserverFunc(func(e scan.Event) {
+			events = append(events, e)
+		})))
+	if err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Fatalf("Run returned %d results, want 1", len(results))
+	}
+	if len(results[0].Findings) != 1 {
+		t.Fatalf("kept %d findings, want 1: %+v", len(results[0].Findings), results[0].Findings)
+	}
+	if got := results[0].Findings[0].RuleID; got != "kept" {
+		t.Errorf("kept finding %q, want %q", got, "kept")
+	}
+
+	// The footer says "raw findings" and is legitimately larger than the
+	// deduped table, but it must not be larger than what reached the report.
+	for _, e := range events {
+		if e.Phase == scan.PhaseDone && e.Findings != 1 {
+			t.Errorf("PhaseDone reported %d findings, want 1", e.Findings)
+		}
+	}
+}
+
+// TestRunWithoutExcludesKeepsEverything pins that the zero value of Target
+// changes nothing, so a caller that never sets Excludes is unaffected.
+func TestRunWithoutExcludesKeepsEverything(t *testing.T) {
+	t.Parallel()
+
+	noisy := stubScanner{name: "noisy", findings: []scan.Finding{
+		{RuleID: "a", Location: scan.Location{Path: "web/node_modules/x/i.js"}},
+		{RuleID: "b", Location: scan.Location{Path: "main.go"}},
+	}}
+
+	results, err := scan.Run(t.Context(), []scan.Scanner{noisy}, scan.Target{Path: "."})
+	if err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+	if len(results[0].Findings) != 2 {
+		t.Errorf("kept %d findings, want 2", len(results[0].Findings))
+	}
+}

@@ -61,6 +61,9 @@ type Options struct {
 }
 
 // Write renders results to w in the given format.
+//
+// It assembles the [Document] itself; callers that need control over how the
+// document was built should use [WriteDocument] instead.
 func Write(w io.Writer, format Format, results []scan.Result, opts Options) error {
 	switch format {
 	case FormatTable:
@@ -69,6 +72,27 @@ func Write(w io.Writer, format Format, results []scan.Result, opts Options) erro
 		return JSON(w, results)
 	case FormatSARIF:
 		return SARIF(w, results)
+	default:
+		return fmt.Errorf("unknown format %q", format)
+	}
+}
+
+// WriteDocument renders a prebuilt Document, for callers that need to control
+// how it was assembled — persisting the unfiltered set while displaying a
+// filtered one, or re-rendering a document loaded from scan history.
+//
+// Rendering is driven entirely by the document's own [Document.Findings] and
+// [Document.Scans], in the order they appear: a caller that filtered or
+// reordered them meant it, and re-deriving anything here would quietly undo
+// the control this function exists to give.
+func WriteDocument(w io.Writer, format Format, doc Document, opts Options) error {
+	switch format {
+	case FormatTable:
+		return renderTable(w, doc.Findings, doc.Scans, opts)
+	case FormatJSON:
+		return encodeDocument(w, doc)
+	case FormatSARIF:
+		return renderSARIF(w, doc.Findings)
 	default:
 		return fmt.Errorf("unknown format %q", format)
 	}

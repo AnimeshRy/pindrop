@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -261,5 +262,96 @@ func TestUTF8Env(t *testing.T) {
 				t.Errorf("forced LC_ALL: got = %t, want %t", forced, tt.wantForced)
 			}
 		})
+	}
+}
+
+// TestArgs pins the three flags that are not optional and the one that must
+// never appear. Each was previously guarded only by a comment.
+func TestArgs(t *testing.T) {
+	t.Parallel()
+
+	got := New().args("/tmp/target", []string{"/rules"}, scan.Excludes{})
+
+	if got[0] != "scan" {
+		t.Errorf("subcommand = %q, want %q", got[0], "scan")
+	}
+
+	// Omitting --config does not mean "no rules"; it means `auto`, which
+	// downloads ~2.4 MB of Semgrep-licensed rules from semgrep.dev on every
+	// scan. That is both an unwanted network dependency and a licensing problem.
+	if i := slices.Index(got, "--config"); i < 0 || got[i+1] != "/rules" {
+		t.Errorf("--config /rules missing from %q", got)
+	}
+
+	// check_id becomes Finding.RuleID, which is a fingerprint input. Without
+	// this flag Opengrep prefixes each rule id with the path of the file it
+	// came from, so reorganizing the rules directory would orphan every triage
+	// decision.
+	if !slices.Contains(got, "--no-rewrite-rule-ids") {
+		t.Errorf("--no-rewrite-rule-ids missing from %q", got)
+	}
+
+	// Without this, Opengrep scans only git-tracked files, so an untracked
+	// target scans to a silent, successful zero findings — the most dangerous
+	// failure mode a security tool has.
+	if !slices.Contains(got, "--no-git-ignore") {
+		t.Errorf("--no-git-ignore missing from %q", got)
+	}
+
+	// Findings must exit 0, so that a non-zero exit unambiguously means the
+	// tool broke.
+	if slices.Contains(got, "--error") {
+		t.Errorf("--error must never be passed: %q", got)
+	}
+
+	if !slices.Contains(got, "--disable-version-check") {
+		t.Errorf("--disable-version-check missing from %q", got)
+	}
+	if got[len(got)-1] != "/tmp/target" {
+		t.Errorf("target is not the final argument: %q", got)
+	}
+}
+
+// TestArgsExcludeDirsHaveTrailingSlash is the .env guard at the adapter level.
+//
+// Opengrep uses gitignore syntax, in which a bare "env" matches a file named
+// env as well as the directory — and an entry for the virtualenv directory
+// must never cause a .env credential file to be skipped.
+func TestArgsExcludeDirsHaveTrailingSlash(t *testing.T) {
+	t.Parallel()
+
+	excludes := scan.Excludes{Dirs: []string{"env", "node_modules"}, Files: []string{"*.min.js"}}
+	got := New().args("/t", nil, excludes)
+
+	for _, want := range []string{"env/", "node_modules/"} {
+		if !slices.Contains(got, want) {
+			t.Errorf("%q missing from %q", want, got)
+		}
+	}
+	for _, unwanted := range []string{"env", "node_modules"} {
+		if slices.Contains(got, unwanted) {
+			t.Errorf("bare %q would match a file under gitignore syntax: %q", unwanted, got)
+		}
+	}
+	// File patterns are passed through unchanged.
+	if !slices.Contains(got, "*.min.js") {
+		t.Errorf("*.min.js missing from %q", got)
+	}
+}
+
+// TestArgsMultipleConfigs covers a rules directory split across several paths.
+func TestArgsMultipleConfigs(t *testing.T) {
+	t.Parallel()
+
+	got := New().args("/t", []string{"/a", "/b"}, scan.Excludes{})
+
+	var configs []string
+	for i := 0; i < len(got)-1; i++ {
+		if got[i] == "--config" {
+			configs = append(configs, got[i+1])
+		}
+	}
+	if !slices.Equal(configs, []string{"/a", "/b"}) {
+		t.Errorf("configs = %q, want [/a /b]", configs)
 	}
 }

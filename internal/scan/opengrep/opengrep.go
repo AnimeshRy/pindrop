@@ -268,7 +268,7 @@ func (s *Scanner) Scan(ctx context.Context, target scan.Target) (scan.Result, er
 		configs = []string{dir}
 	}
 
-	raw, err := s.run(ctx, target.Path, configs)
+	raw, err := s.run(ctx, target.Path, configs, target.Excludes)
 	if err != nil {
 		return scan.Result{}, err
 	}
@@ -302,18 +302,12 @@ func (s *Scanner) Scan(ctx context.Context, target scan.Target) (scan.Result, er
 	}, nil
 }
 
-// run invokes Opengrep and returns its raw JSON report.
-func (s *Scanner) run(ctx context.Context, path string, configs []string) ([]byte, error) {
-	binary, err := s.resolve()
-	if err != nil {
-		return nil, &scan.UnavailableError{
-			Scanner: Name,
-			Reason:  fmt.Sprintf("%q not found", s.binary),
-			Hint:    installHint,
-			Err:     err,
-		}
-	}
-
+// args builds the Opengrep command line.
+//
+// Split out from [Scanner.run] so that the invariants below are enforced by
+// tests rather than asserted in comments. Three of these flags are not
+// optional and one must never be added.
+func (s *Scanner) args(path string, configs []string, excludes scan.Excludes) []string {
 	args := []string{
 		"scan",
 		"--json",
@@ -330,19 +324,22 @@ func (s *Scanner) run(ctx context.Context, path string, configs []string) ([]byt
 		// code, would otherwise scan to a silent, successful zero findings — the
 		// most dangerous failure mode a security tool has.
 		"--no-git-ignore",
-		// Disabling git-ignore also un-excludes dependency and build directories,
-		// which are megabytes of third-party and generated code. These are stated
-		// explicitly rather than left to Opengrep's bundled default ignore file,
-		// because that file is resolved relative to the process working directory
-		// rather than the target, so relying on it would make results depend on
-		// where pindrop happened to be invoked from.
-		"--exclude", "node_modules",
-		"--exclude", "vendor",
-		"--exclude", "dist",
-		"--exclude", "build",
-		"--exclude", ".git",
-		"--exclude", "*.min.js",
 	}
+
+	// Disabling git-ignore also un-excludes dependency and build directories,
+	// which are megabytes of third-party and generated code. These are stated
+	// explicitly rather than left to Opengrep's bundled default ignore file,
+	// because that file is resolved relative to the process working directory
+	// rather than the target, so relying on it would make results depend on
+	// where pindrop happened to be invoked from.
+	//
+	// The patterns come from scan.Excludes rather than a list local to this
+	// adapter, so that all four scanners tell one story about what was skipped.
+	// Note the trailing slash OpengrepArgs puts on every directory: gitignore
+	// syntax treats a bare "env" as a file pattern too, which would skip a .env
+	// file and blind the secret scanner.
+	args = append(args, excludes.OpengrepArgs()...)
+
 	for _, c := range configs {
 		// Omitting --config entirely is not an option: Opengrep defaults to
 		// `auto`, which downloads a ~2.4 MB third-party ruleset from semgrep.dev
@@ -350,10 +347,23 @@ func (s *Scanner) run(ctx context.Context, path string, configs []string) ([]byt
 		// licensing problem.
 		args = append(args, "--config", c)
 	}
-	args = append(args, path)
+	return append(args, path)
+}
+
+// run invokes Opengrep and returns its raw JSON report.
+func (s *Scanner) run(ctx context.Context, path string, configs []string, excludes scan.Excludes) ([]byte, error) {
+	binary, err := s.resolve()
+	if err != nil {
+		return nil, &scan.UnavailableError{
+			Scanner: Name,
+			Reason:  fmt.Sprintf("%q not found", s.binary),
+			Hint:    installHint,
+			Err:     err,
+		}
+	}
 
 	var stdout, stderr bytes.Buffer
-	cmd := exec.CommandContext(ctx, binary, args...)
+	cmd := exec.CommandContext(ctx, binary, s.args(path, configs, excludes)...)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	cmd.Env = utf8Env()

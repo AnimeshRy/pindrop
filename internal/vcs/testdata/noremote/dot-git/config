@@ -1,0 +1,4 @@
+[core]
+	bare = false
+[remote "upstream"]
+	url = https://github.com/other/repo.git

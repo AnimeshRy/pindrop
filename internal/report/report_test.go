@@ -3,6 +3,7 @@ package report_test
 import (
 	"bytes"
 	"encoding/json"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -230,6 +231,262 @@ func TestDecodeDocumentRejectsUnknownSchema(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "999") {
 		t.Errorf("DecodeDocument() error = %q, want it to name the bad version", err)
+	}
+}
+
+// TestDecodeDocumentSchemaRange pins the readable range and, more importantly,
+// that the two failure directions are told apart: "upgrade pindrop" and "run a
+// fresh scan" are different instructions, and a user who gets the wrong one
+// wastes their time.
+func TestDecodeDocumentSchemaRange(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		body     string
+		wantErr  bool
+		contains []string
+	}{
+		{
+			name: "missing version",
+			body: `{"generatedAt":"2026-08-02T12:00:00Z"}`,
+			// Not "old" — a file with no version is most often not ours at all.
+			wantErr:  true,
+			contains: []string{"no schemaVersion", "pindrop scan"},
+		},
+		{
+			name:     "explicit zero",
+			body:     `{"schemaVersion":0}`,
+			wantErr:  true,
+			contains: []string{"no schemaVersion"},
+		},
+		{
+			name:     "too old",
+			body:     `{"schemaVersion":-1}`,
+			wantErr:  true,
+			contains: []string{"-1", "older pindrop", "fresh scan"},
+		},
+		{
+			name:     "too new",
+			body:     `{"schemaVersion":999}`,
+			wantErr:  true,
+			contains: []string{"999", "newer pindrop", "upgrade"},
+		},
+		{
+			name: "minimum readable",
+			body: `{"schemaVersion":1,"findings":[]}`,
+		},
+		{
+			name: "current",
+			body: `{"schemaVersion":2,"findings":[]}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := report.DecodeDocument(strings.NewReader(tt.body))
+			if !tt.wantErr {
+				if err != nil {
+					t.Fatalf("DecodeDocument() error = %v, want nil", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatal("DecodeDocument() error = nil, want an error")
+			}
+			for _, want := range tt.contains {
+				if !strings.Contains(err.Error(), want) {
+					t.Errorf("DecodeDocument() error = %q, want it to mention %q", err, want)
+				}
+			}
+		})
+	}
+}
+
+// TestDecodeV1Document is the reason the version check is a range: a document
+// written before scan history existed must keep decoding, with the fields it
+// predates left at their zero values. The JSON is written out literally rather
+// than built from the current struct, so a future field rename cannot make this
+// test pass by rewriting the fixture along with the code.
+func TestDecodeV1Document(t *testing.T) {
+	t.Parallel()
+
+	const v1 = `{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-02T12:00:00Z",
+  "tool": {"name": "pindrop", "version": "0.1.0"},
+  "scans": [
+    {"scanner": "trivy", "target": "/tmp/app", "startedAt": "2026-08-02T12:00:00Z", "durationMs": 3200, "findings": 1}
+  ],
+  "findings": [
+    {"fingerprint": "aaaa", "scanner": "trivy", "ruleId": "CVE-2024-21538", "category": "vulnerability", "severity": "high"}
+  ]
+}`
+
+	doc, err := report.DecodeDocument(strings.NewReader(v1))
+	if err != nil {
+		t.Fatalf("DecodeDocument() error = %v, want nil", err)
+	}
+
+	if doc.SchemaVersion != 1 {
+		t.Errorf("SchemaVersion = %d, want 1", doc.SchemaVersion)
+	}
+	if len(doc.Findings) != 1 || doc.Findings[0].Fingerprint != "aaaa" {
+		t.Errorf("Findings = %+v, want the single v1 finding", doc.Findings)
+	}
+	if len(doc.Scans) != 1 || doc.Scans[0].DurationMS != 3200 {
+		t.Errorf("Scans = %+v, want the single v1 scan", doc.Scans)
+	}
+
+	// Everything added since v1 must be absent, not invented.
+	if doc.RunID != "" {
+		t.Errorf("RunID = %q, want empty", doc.RunID)
+	}
+	if doc.Repo != nil {
+		t.Errorf("Repo = %+v, want nil", doc.Repo)
+	}
+	if doc.Status != nil {
+		t.Errorf("Status = %v, want nil", doc.Status)
+	}
+}
+
+// TestDocumentHistoryRoundTrip covers the fields a persisted run adds.
+func TestDocumentHistoryRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	doc := report.NewDocument(sampleResults())
+	doc.RunID = "01JCE7F3ZQ9V4T0KX2A6M8B1YQ"
+	doc.Repo = &report.Repo{
+		ID:     "repo-7f3a",
+		Name:   "pindrop",
+		Path:   "/tmp/app",
+		Origin: "git@github.com:AnimeshRy/pindrop.git",
+		Branch: "main",
+		Commit: "42b9daf",
+	}
+	doc.Status = map[string]scan.Status{
+		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": scan.StatusOpen,
+		"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": scan.StatusNew,
+		"cccccccccccccccccccccccccccccccc": scan.StatusRegressed,
+	}
+
+	var buf bytes.Buffer
+	if err := report.WriteDocument(&buf, report.FormatJSON, doc, report.Options{}); err != nil {
+		t.Fatalf("WriteDocument() error = %v, want nil", err)
+	}
+
+	got, err := report.DecodeDocument(&buf)
+	if err != nil {
+		t.Fatalf("DecodeDocument() error = %v, want nil", err)
+	}
+
+	if got.RunID != doc.RunID {
+		t.Errorf("RunID = %q, want %q", got.RunID, doc.RunID)
+	}
+	if got.Repo == nil || *got.Repo != *doc.Repo {
+		t.Errorf("Repo = %+v, want %+v", got.Repo, doc.Repo)
+	}
+	if len(got.Status) != len(doc.Status) {
+		t.Fatalf("Status = %v, want %v", got.Status, doc.Status)
+	}
+	for fp, want := range doc.Status {
+		if got.Status[fp] != want {
+			t.Errorf("Status[%s] = %q, want %q", fp, got.Status[fp], want)
+		}
+	}
+}
+
+// TestDocumentWithoutHistoryMatchesV1Bytes protects every existing consumer: a
+// scan that was not persisted must serialize exactly as it did before scan
+// history existed, so that the only visible difference is the version number.
+// The expected bytes come from a struct carrying only the v1 fields, not from
+// the current one.
+func TestDocumentWithoutHistoryMatchesV1Bytes(t *testing.T) {
+	t.Parallel()
+
+	type v1Document struct {
+		SchemaVersion int                  `json:"schemaVersion"`
+		GeneratedAt   time.Time            `json:"generatedAt"`
+		Tool          report.Tool          `json:"tool"`
+		Scans         []report.ScanSummary `json:"scans"`
+		Findings      []scan.Finding       `json:"findings"`
+	}
+
+	doc := report.NewDocument(sampleResults())
+
+	var got bytes.Buffer
+	if err := report.WriteDocument(&got, report.FormatJSON, doc, report.Options{}); err != nil {
+		t.Fatalf("WriteDocument() error = %v, want nil", err)
+	}
+
+	var want bytes.Buffer
+	enc := json.NewEncoder(&want)
+	enc.SetIndent("", "  ")
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(v1Document{
+		SchemaVersion: 1,
+		GeneratedAt:   doc.GeneratedAt,
+		Tool:          doc.Tool,
+		Scans:         doc.Scans,
+		Findings:      doc.Findings,
+	}); err != nil {
+		t.Fatalf("Encode() error = %v", err)
+	}
+
+	// Normalize away the one difference that is supposed to exist.
+	normalized := strings.Replace(got.String(),
+		`"schemaVersion": 2`, `"schemaVersion": 1`, 1)
+	if normalized != want.String() {
+		t.Errorf("document bytes differ from v1 layout:\ngot:\n%s\nwant:\n%s", normalized, want.String())
+	}
+}
+
+// TestWriteDocumentMatchesWrite pins the decomposition: rendering a document
+// and rendering the results it was built from must not drift apart.
+func TestWriteDocumentMatchesWrite(t *testing.T) {
+	t.Parallel()
+
+	for _, format := range report.Formats {
+		t.Run(string(format), func(t *testing.T) {
+			t.Parallel()
+
+			results := sampleResults()
+			doc := report.NewDocument(results)
+
+			var fromResults, fromDoc bytes.Buffer
+			if err := report.Write(&fromResults, format, results, report.Options{}); err != nil {
+				t.Fatalf("Write() error = %v, want nil", err)
+			}
+			if err := report.WriteDocument(&fromDoc, format, doc, report.Options{}); err != nil {
+				t.Fatalf("WriteDocument() error = %v, want nil", err)
+			}
+
+			got, want := fromDoc.String(), fromResults.String()
+			if format == report.FormatJSON {
+				// Only the generation timestamp can legitimately differ: the
+				// two calls build their documents at different instants.
+				got = generatedAt.ReplaceAllString(got, "")
+				want = generatedAt.ReplaceAllString(want, "")
+			}
+			if got != want {
+				t.Errorf("WriteDocument(%q) differs from Write:\ngot:\n%s\nwant:\n%s", format, got, want)
+			}
+		})
+	}
+}
+
+// generatedAt matches the one field two independently built documents may
+// legitimately disagree on.
+var generatedAt = regexp.MustCompile(`"generatedAt": "[^"]*"`)
+
+func TestWriteDocumentUnknownFormat(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	if err := report.WriteDocument(&buf, report.Format("xml"), report.Document{}, report.Options{}); err == nil {
+		t.Fatal("WriteDocument() error = nil, want an error")
 	}
 }
 

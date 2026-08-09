@@ -10,19 +10,43 @@ import {
 import { useMemo, useState } from 'react'
 
 import { SeverityBadge } from '@/components/SeverityBadge'
-import { SEVERITY_RANK, type Finding } from '@/lib/api'
+import { StatusBadge } from '@/components/StatusBadge'
+import { SEVERITY_RANK, type Finding, type Status } from '@/lib/api'
 import { formatLocation } from '@/lib/utils'
 
-const columnHelper = createColumnHelper<Finding>()
+/**
+ * A finding, optionally carrying the lifecycle status it held in the run being
+ * viewed. Status is a property of a run, not of a finding — a report served
+ * without history has none — so it is optional here rather than on `Finding`.
+ */
+export type FindingRow = Finding & { status?: Status }
 
-export function FindingsTable({ findings }: { findings: Finding[] }) {
+const columnHelper = createColumnHelper<FindingRow>()
+
+export function FindingsTable({ findings }: { findings: FindingRow[] }) {
   // Severity descending is the only sensible default: the product exists to put
   // the worst thing first.
   const [sorting, setSorting] = useState<SortingState>([{ id: 'severity', desc: true }])
   const [filter, setFilter] = useState('')
 
+  // The column is shown only when statuses are actually present, so a
+  // single-report view does not grow a permanently empty column.
+  const hasStatus = findings.some((f) => f.status !== undefined)
+
   const columns = useMemo(
     () => [
+      ...(hasStatus
+        ? [
+            columnHelper.accessor((row) => row.status ?? '', {
+              id: 'status',
+              header: 'Status',
+              cell: (info) => {
+                const status = info.row.original.status
+                return status ? <StatusBadge status={status} /> : null
+              },
+            }),
+          ]
+        : []),
       columnHelper.accessor('severity', {
         header: 'Severity',
         cell: (info) => <SeverityBadge severity={info.getValue()} />,
@@ -75,7 +99,7 @@ export function FindingsTable({ findings }: { findings: Finding[] }) {
         },
       }),
     ],
-    [],
+    [hasStatus],
   )
 
   const table = useReactTable({

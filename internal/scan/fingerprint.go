@@ -66,12 +66,27 @@ func Fingerprint(f Finding) string {
 
 // dependencyIdentity builds fingerprint inputs for package-scoped findings.
 //
-// The manifest path is included so that the same vulnerable package pinned at
-// the same version in two different services of a monorepo remains two issues:
-// they are owned by different teams and fixed by different pull requests.
+// The manifest path is included so that the same vulnerable package pinned in
+// two different services of a monorepo remains two issues: they are owned by
+// different teams and fixed by different pull requests.
 // The rule ID and package coordinates are canonicalized first, because the whole
 // point of excluding the scanner name is defeated if two tools spell the same
 // advisory or the same ecosystem differently. See [CanonicalAdvisoryID].
+//
+// The installed version is deliberately excluded, for the same reason line
+// numbers are. A version is the finding's current state, not its identity: the
+// issue is "this dependency, in this manifest, is subject to this advisory".
+// Including it meant that bumping golang.org/x/net from v0.35.0 to v0.35.1
+// against an advisory not fixed until v0.36.0 changed the fingerprint, so a
+// partial upgrade — the most common way these findings actually change —
+// reported one issue resolved and one new issue, and orphaned any triage
+// decision attached to it. The version remains on [Finding.Package] as
+// displayed data, and [Finding.FixedIn] still drives remediation advice.
+//
+// The cost is that two versions of one package in a single manifest, subject to
+// the same advisory, now merge into one finding. That is the right trade and
+// the same one [locationIdentity] already makes: merging is recoverable, a
+// fingerprint that churns is not.
 func dependencyIdentity(f Finding) []string {
 	parts := []string{
 		"pkg",
@@ -83,11 +98,9 @@ func dependencyIdentity(f Finding) []string {
 		return parts
 	}
 
-	ecosystem := CanonicalEcosystem(f.Package.Ecosystem)
 	return append(parts,
-		ecosystem,
+		CanonicalEcosystem(f.Package.Ecosystem),
 		strings.TrimSpace(f.Package.Name),
-		CanonicalVersion(ecosystem, f.Package.Version),
 	)
 }
 

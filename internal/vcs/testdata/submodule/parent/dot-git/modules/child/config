@@ -1,0 +1,2 @@
+[remote "origin"]
+	url = ssh://git@github.com:22/owner/child

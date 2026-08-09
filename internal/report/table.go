@@ -78,8 +78,17 @@ func (ew *errWriter) printf(format string, args ...any) {
 // reads the top of this list and stops. Findings are sorted most severe first
 // by [scan.Findings].
 func Table(w io.Writer, results []scan.Result, opts Options) error {
-	findings := scan.Findings(results)
+	return renderTable(w, scan.Findings(results), newScanSummaries(results), opts)
+}
 
+// renderTable is the shared body of [Table] and the table arm of
+// [WriteDocument]. It takes an already-flattened finding set plus the
+// per-scanner summaries, which is precisely the pair a [Document] carries, so
+// results-driven and document-driven rendering run the same code.
+//
+// It does not sort: findings arrive severity-ordered from [scan.Findings], and
+// a document built by [NewDocument] preserves that order.
+func renderTable(w io.Writer, findings []scan.Finding, scans []ScanSummary, opts Options) error {
 	ew := &errWriter{w: w}
 	if len(findings) == 0 {
 		ew.printf("%s\n", paint(opts, ansiDim, "No findings."))
@@ -100,7 +109,7 @@ func Table(w io.Writer, results []scan.Result, opts Options) error {
 			fmt.Sprintf("  ... and %d more (use --limit 0 to show all)", hidden)))
 	}
 
-	writeSummary(ew, results, findings, opts)
+	writeSummary(ew, scans, findings, opts)
 	return ew.err
 }
 
@@ -132,7 +141,7 @@ func writeRows(w io.Writer, findings []scan.Finding, opts Options) error {
 }
 
 // writeSummary prints the trailing counts and timing lines.
-func writeSummary(ew *errWriter, results []scan.Result, findings []scan.Finding, opts Options) {
+func writeSummary(ew *errWriter, scans []ScanSummary, findings []scan.Finding, opts Options) {
 	counts := make(map[scan.Severity]int, len(displayOrder))
 	for _, f := range findings {
 		counts[f.Severity]++
@@ -150,9 +159,10 @@ func writeSummary(ew *errWriter, results []scan.Result, findings []scan.Finding,
 		strings.Join(parts, "  "),
 	)
 
-	for _, r := range results {
+	for _, s := range scans {
+		d := time.Duration(s.DurationMS) * time.Millisecond
 		ew.printf("%s\n", paint(opts, ansiDim, fmt.Sprintf("  %s scanned %s in %s",
-			r.Scanner, r.Target.Path, r.Duration.Round(timeRounding))))
+			s.Scanner, s.Target, d.Round(timeRounding))))
 	}
 }
 

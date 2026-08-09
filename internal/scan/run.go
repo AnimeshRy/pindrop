@@ -50,6 +50,14 @@ func Run(ctx context.Context, scanners []Scanner, target Target, opts ...RunOpti
 				return
 			}
 
+			// The backstop for exclusions. Adapters pass the equivalent flags
+			// to their tools, but the four vocabularies differ enough that
+			// agreement cannot be established by four independent
+			// translations; it is established here. Applying it before the
+			// terminal event also keeps the progress display's "raw findings"
+			// count equal to what actually reaches the report.
+			res.Findings = target.Excludes.Filter(res.Findings)
+
 			results[i] = res
 			cfg.notify(Event{
 				Scanner: s.Name(), Index: i, Phase: PhaseDone,

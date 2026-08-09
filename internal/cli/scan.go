@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -45,6 +46,13 @@ type scanOptions struct {
 	trufflehogBinary       string
 	trufflehogExcludePaths []string
 	verifySecrets          bool
+
+	exclude           []string
+	noDefaultExcludes bool
+	configPath        string
+
+	noHistory bool
+	diff      bool
 
 	progress  string
 	noInstall bool
@@ -107,6 +115,16 @@ directory.`),
 		"enable OSV-Scanner reachability analysis (slower; compiles the target)")
 	f.StringVar(&opts.cacheDir, "cache-dir", "",
 		"directory for scanner caches, such as the vulnerability database")
+	f.BoolVar(&opts.noHistory, "no-history", false,
+		"do not record this scan in ~/.pindrop/scans")
+	f.BoolVar(&opts.diff, "diff", false,
+		"show only what changed since the previous scan of this repository")
+	f.StringSliceVar(&opts.exclude, "exclude", nil,
+		"skip a directory or file, repeatable (prefix with dir: or file: to be explicit)")
+	f.BoolVar(&opts.noDefaultExcludes, "no-default-excludes", false,
+		"do not apply the built-in exclusions (node_modules, .venv, build output, ...)")
+	f.StringVar(&opts.configPath, "config", "",
+		"path to a config file (default: "+ConfigName+" in the scanned directory)")
 	f.StringVar(&opts.progress, "progress", "auto",
 		"progress display: auto, animated, plain, none")
 	f.BoolVar(&opts.noInstall, "no-install", false,
@@ -180,6 +198,18 @@ func parseScanOptions(opts *scanOptions, path string) (scanRequest, error) {
 	if r.target, err = resolveTarget(path); err != nil {
 		return r, err
 	}
+
+	// A malformed config is fatal here rather than a warning, and before any
+	// scanner is preflighted. A security tool that silently ignores its own
+	// configuration is worse than one that refuses to start: the user believes
+	// the exclusions applied.
+	cfg, err := loadConfig(r.target.Path, opts.configPath)
+	if err != nil {
+		return r, err
+	}
+	if r.target.Excludes, err = resolveExcludes(cfg, opts.exclude, opts.noDefaultExcludes); err != nil {
+		return r, err
+	}
 	return r, nil
 }
 
@@ -215,6 +245,7 @@ func runScan(ctx context.Context, g *globals, opts *scanOptions, path string) er
 	}
 
 	slog.Debug("starting scan", "path", target.Path, "scanners", len(scanners))
+	started := time.Now()
 
 	progress := tui.StartScan(target.Path, tui.Options{
 		Mode:  mode,
@@ -240,6 +271,16 @@ func runScan(ctx context.Context, g *globals, opts *scanOptions, path string) er
 	// A partial failure must not discard the findings we did collect.
 	if scanErr != nil {
 		slog.Warn("some scanners failed", "error", scanErr)
+	}
+
+	// Persist BEFORE filtering, and from the unfiltered set.
+	//
+	// --min-severity and --scanners narrow what the user is shown, not what was
+	// true. Recording the narrowed set would make the next default scan report
+	// every dropped finding as newly reintroduced, and `--scanners vuln` would
+	// record a run in which every secret and code finding had vanished.
+	if !opts.noHistory {
+		recordHistory(ctx, results, target, usable, started)
 	}
 
 	if minSeverity != "" {

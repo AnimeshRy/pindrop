@@ -219,15 +219,6 @@ func TestDedupPreservesDistinctFindings(t *testing.T) {
 			},
 		},
 		{
-			name: "different package version",
-			mutate: func(f scan.Finding) scan.Finding {
-				f.Package = &scan.PackageRef{
-					Name: "cross-spawn", Version: "7.0.4", Ecosystem: "npm",
-				}
-				return f
-			},
-		},
-		{
 			name: "same package in another service of a monorepo",
 			mutate: func(f scan.Finding) scan.Finding {
 				f.Location.Path = "services/api/package-lock.json"
@@ -303,5 +294,69 @@ func TestDedupEmpty(t *testing.T) {
 
 	if got := scan.Dedup(nil); got != nil {
 		t.Errorf("Dedup(nil) = %v, want nil", got)
+	}
+}
+
+// TestDedupMergesVersionsOfOnePackage is the counterpart to dropping the
+// installed version from dependency identity.
+//
+// Two versions of one package in a single manifest, subject to one advisory,
+// are one issue to act on. The merge is the accepted cost of a fingerprint that
+// survives a partial upgrade — see dependencyIdentity. It is recoverable, since
+// both versions remain visible on the merged finding's package data; a churning
+// fingerprint would not be.
+func TestDedupMergesVersionsOfOnePackage(t *testing.T) {
+	t.Parallel()
+
+	base := scan.Finding{
+		Scanner:  "trivy",
+		RuleID:   "CVE-2024-21538",
+		Category: scan.CategoryVulnerability,
+		Severity: scan.SeverityHigh,
+		Location: scan.Location{Path: "package-lock.json"},
+		Package: &scan.PackageRef{
+			Name: "cross-spawn", Version: "7.0.3", Ecosystem: "npm",
+		},
+	}
+
+	other := base
+	other.Package = &scan.PackageRef{
+		Name: "cross-spawn", Version: "7.0.4", Ecosystem: "npm",
+	}
+
+	got := scan.Dedup([]scan.Finding{fingerprinted(base), fingerprinted(other)})
+	if len(got) != 1 {
+		t.Fatalf("Dedup returned %d findings, want 1 merged", len(got))
+	}
+}
+
+// TestFingerprintSurvivesPartialUpgrade states the property the merge buys, in
+// the terms the dashboard reports it: bumping a dependency to a version the
+// advisory still covers is one unresolved issue, not one fixed plus one new.
+func TestFingerprintSurvivesPartialUpgrade(t *testing.T) {
+	t.Parallel()
+
+	before := scan.Finding{
+		Scanner:  "osv",
+		RuleID:   "GO-2025-3503",
+		Aliases:  []string{"CVE-2025-22870"},
+		Category: scan.CategoryVulnerability,
+		Severity: scan.SeverityMedium,
+		Location: scan.Location{Path: "go.mod"},
+		Package: &scan.PackageRef{
+			Name: "golang.org/x/net", Version: "v0.35.0", Ecosystem: "gomod",
+		},
+		FixedIn: "v0.36.0",
+	}
+
+	// Still short of the fixed version, so still the same open issue.
+	after := before
+	after.Package = &scan.PackageRef{
+		Name: "golang.org/x/net", Version: "v0.35.1", Ecosystem: "gomod",
+	}
+
+	if scan.Fingerprint(before) != scan.Fingerprint(after) {
+		t.Error("a partial upgrade changed the fingerprint, so the dashboard " +
+			"would report the advisory as fixed and a new one introduced")
 	}
 }

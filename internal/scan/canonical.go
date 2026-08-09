@@ -133,6 +133,10 @@ func CanonicalEcosystem(ecosystem string) string {
 // unrelated versions of a package, which is a worse failure than a duplicate.
 //
 // ecosystem must already be canonical — pass the result of [CanonicalEcosystem].
+//
+// This is not a fingerprint input. [Fingerprint] deliberately excludes the
+// installed version, so this exists for comparing and displaying versions that
+// two tools spelled differently — not for establishing identity.
 func CanonicalVersion(ecosystem, version string) string {
 	v := strings.TrimSpace(version)
 	if ecosystem != "golang" {

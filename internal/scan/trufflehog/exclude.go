@@ -7,36 +7,45 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/AnimeshRy/pindrop/internal/scan"
 )
 
-// defaultExcludes are the path patterns skipped on every scan.
+// secretNoiseExcludes are excluded from secret scanning only, and are
+// deliberately absent from [scan.DefaultExcludes].
 //
 // These are regular expressions matched against the path, not globs:
-// --exclude-globs is git-only, and the filesystem source accepts patterns solely
-// through a file. They mirror the --exclude set the Opengrep adapter passes so
-// that two adapters scanning one tree tell one story, with two additions.
+// --exclude-globs is git-only, and the filesystem source accepts patterns
+// solely through a file.
 //
-// The first is `.git`, and it is the reason this list is not optional. Unlike
-// Opengrep, `trufflehog filesystem` walks the repository's own object store, and
-// a secret found inside a packfile is reported at a path like
-// .git/objects/pack/pack-<sha>.pack. That path is a fingerprint input and it
-// churns on every gc and every fetch, so those findings would report themselves
-// as fixed-and-reintroduced forever.
+// Lockfiles are a genuine trade rather than a free win. They are dense with
+// high-entropy integrity hashes that no detector should be asked to reason
+// about, but a real token can legitimately appear in a private registry URL
+// inside one. Excluding them accepts that false negative in exchange for the
+// adapter being usable at all on a JavaScript repository.
 //
-// The second is lockfiles, and it is a genuine trade rather than a free win.
-// They are dense with high-entropy integrity hashes that no detector should be
-// asked to reason about, but a real token can legitimately appear in a private
-// registry URL inside one. Excluding them accepts that false negative in
-// exchange for the adapter being usable at all on a JavaScript repository.
-var defaultExcludes = []string{
-	`(^|/)\.git/`,
-	`(^|/)node_modules/`,
-	`(^|/)vendor/`,
-	`(^|/)dist/`,
-	`(^|/)build/`,
-	`(^|/)\.pindrop/`,
-	`\.min\.js$`,
-	`(^|/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|go\.sum|Cargo\.lock)$`,
+// They live here rather than in the shared set because they are dependency
+// manifests: excluding them globally would blind Trivy and OSV-Scanner to
+// every dependency in the tree, which is a far worse trade than the one this
+// adapter is making.
+var secretNoiseExcludes = []string{
+	`(^|/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|go\.sum|Cargo\.lock|poetry\.lock|Gemfile\.lock|composer\.lock)$`,
+}
+
+// excludePatterns returns every pattern for one invocation: the shared set
+// translated into anchored regular expressions, this adapter's lockfile
+// addendum, and whatever the user asked for.
+//
+// The shared set is the reason `.git` is covered, and that coverage is not
+// optional here. Unlike Opengrep, `trufflehog filesystem` walks the
+// repository's own object store, and a secret found inside a packfile is
+// reported at a path like .git/objects/pack/pack-<sha>.pack. That path is a
+// fingerprint input and it churns on every gc and every fetch, so those
+// findings would report themselves as fixed-and-reintroduced forever.
+func excludePatterns(excludes scan.Excludes, user []string) []string {
+	patterns := excludes.TruffleHogPatterns()
+	patterns = append(patterns, secretNoiseExcludes...)
+	return append(patterns, user...)
 }
 
 // writeExcludeFile writes patterns to a newline-separated file in a fresh

@@ -21,7 +21,7 @@ function RootLayout() {
               activeProps={{ className: 'font-medium underline' }}
               activeOptions={{ exact: true }}
             >
-              Findings
+              Repositories
             </Link>
           </nav>
         </div>
@@ -39,7 +39,7 @@ function NotFound() {
     <div className="py-16 text-center">
       <h1 className="text-lg font-medium">Page not found</h1>
       <Link to="/" className="mt-2 inline-block text-sm underline">
-        Back to findings
+        Back to repositories
       </Link>
     </div>
   )

@@ -3,6 +3,7 @@ package trivy
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -142,5 +143,85 @@ func sign(n int) int {
 		return 1
 	default:
 		return 0
+	}
+}
+
+// TestArgs pins the invariants that were previously only asserted in comments.
+func TestArgs(t *testing.T) {
+	t.Parallel()
+
+	s := New()
+	got := s.args("/tmp/target", scan.Excludes{})
+
+	// Without --exit-code 0, Trivy exits non-zero when it finds vulnerabilities,
+	// making "the tool failed" indistinguishable from "the code has bugs".
+	if i := slices.Index(got, "--exit-code"); i < 0 || got[i+1] != "0" {
+		t.Errorf("--exit-code 0 missing from %q", got)
+	}
+	if got[0] != "fs" {
+		t.Errorf("subcommand = %q, want %q", got[0], "fs")
+	}
+	// The target must come last; Trivy takes it positionally.
+	if got[len(got)-1] != "/tmp/target" {
+		t.Errorf("target is not the final argument: %q", got)
+	}
+	for _, want := range []string{"--format", "json", "--quiet"} {
+		if !slices.Contains(got, want) {
+			t.Errorf("%q missing from %q", want, got)
+		}
+	}
+}
+
+func TestArgsCacheDir(t *testing.T) {
+	t.Parallel()
+
+	without := New().args("/t", scan.Excludes{})
+	if slices.Contains(without, "--cache-dir") {
+		t.Errorf("--cache-dir emitted with no cache directory set: %q", without)
+	}
+
+	with := New(WithCacheDir("/cache")).args("/t", scan.Excludes{})
+	if i := slices.Index(with, "--cache-dir"); i < 0 || with[i+1] != "/cache" {
+		t.Errorf("--cache-dir /cache missing from %q", with)
+	}
+}
+
+// TestArgsSkipsExcludedDirs covers the ordinary case: with the license
+// sub-scanner off, every excluded directory reaches Trivy as --skip-dirs, in
+// both the bare and **/-prefixed forms.
+func TestArgsSkipsExcludedDirs(t *testing.T) {
+	t.Parallel()
+
+	s := New(WithScanners("vuln", "secret"))
+	got := s.args("/t", scan.Excludes{Dirs: []string{"node_modules"}})
+
+	for _, want := range []string{"node_modules", "**/node_modules"} {
+		if !slices.Contains(got, want) {
+			t.Errorf("%q missing from %q", want, got)
+		}
+	}
+}
+
+// TestArgsKeepsLicenseSourceDirs is the exception that earns its keep: Trivy
+// identifies npm licenses by reading LICENSE files under node_modules and Go
+// licenses from vendor/, so skipping them would silently delete the copyleft
+// findings actionableLicense exists to surface.
+//
+// Those directories' other findings are still filtered — scan.Run applies the
+// same exclusions to everything that comes back — so only the walk cost differs.
+func TestArgsKeepsLicenseSourceDirs(t *testing.T) {
+	t.Parallel()
+
+	excludes := scan.Excludes{Dirs: []string{"node_modules", "vendor", "dist"}}
+	got := New(WithScanners("vuln", "license")).args("/t", excludes)
+
+	for _, kept := range []string{"node_modules", "vendor"} {
+		if slices.Contains(got, kept) {
+			t.Errorf("%q was skipped, which blinds the license scanner: %q", kept, got)
+		}
+	}
+	// An ordinary build directory is still skipped.
+	if !slices.Contains(got, "dist") {
+		t.Errorf("dist should still be skipped: %q", got)
 	}
 }

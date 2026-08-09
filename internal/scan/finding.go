@@ -196,6 +196,15 @@ type Finding struct {
 type Target struct {
 	// Path is the root directory to analyze.
 	Path string `json:"path"`
+
+	// Excludes are paths not worth scanning. Adapters translate them into
+	// their tool's own flags, and [Run] applies them again to the findings
+	// that come back — see [Excludes.Filter] for why both are needed.
+	//
+	// Excludes change which findings appear in a report; they must never
+	// change the identity of one that remains. Nothing here reaches
+	// [Fingerprint].
+	Excludes Excludes `json:"excludes,omitzero"`
 }
 
 // Result is the outcome of running a single scanner against a single target.
