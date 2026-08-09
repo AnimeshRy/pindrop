@@ -7,12 +7,13 @@ import {
   useReactTable,
   type SortingState,
 } from '@tanstack/react-table'
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 
+import { FindingDetail } from '@/components/FindingDetail'
 import { SeverityBadge } from '@/components/SeverityBadge'
 import { StatusBadge } from '@/components/StatusBadge'
 import { SEVERITY_RANK, type Finding, type Status } from '@/lib/api'
-import { formatLocation } from '@/lib/utils'
+import { cn, formatLocation } from '@/lib/utils'
 
 /**
  * A finding, optionally carrying the lifecycle status it held in the run being
@@ -28,6 +29,7 @@ export function FindingsTable({ findings }: { findings: FindingRow[] }) {
   // the worst thing first.
   const [sorting, setSorting] = useState<SortingState>([{ id: 'severity', desc: true }])
   const [filter, setFilter] = useState('')
+  const [selected, setSelected] = useState<string | null>(null)
 
   // The column is shown only when statuses are actually present, so a
   // single-report view does not grow a permanently empty column.
@@ -164,26 +166,55 @@ export function FindingsTable({ findings }: { findings: FindingRow[] }) {
                 </td>
               </tr>
             ) : (
-              rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className="border-t hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
-                  style={{ borderColor: 'var(--border)' }}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-4 py-2.5 align-top">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))
+              rows.map((row) => {
+                const finding = row.original
+                const isSelected = selected === finding.fingerprint
+
+                return (
+                  <Fragment key={row.id}>
+                    <tr
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={isSelected}
+                      onClick={() =>
+                        setSelected(isSelected ? null : finding.fingerprint)
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          setSelected(isSelected ? null : finding.fingerprint)
+                        }
+                      }}
+                      className={cn(
+                        'cursor-pointer border-t hover:bg-black/[0.02] dark:hover:bg-white/[0.03]',
+                        isSelected && 'bg-black/[0.03] dark:bg-white/[0.04]',
+                      )}
+                      style={{ borderColor: 'var(--border)' }}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="px-4 py-2.5 align-top">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                    {isSelected && (
+                      <tr style={{ borderColor: 'var(--border)' }}>
+                        <td colSpan={columns.length} className="border-t px-4 py-3">
+                          <FindingDetail finding={finding} />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                )
+              })
             )}
           </tbody>
         </table>
       </div>
 
       <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-        Showing {rows.length} of {findings.length} findings
+        Showing {rows.length} of {findings.length} findings. Click a row for the full
+        explanation, code snippet, and references.
       </p>
     </div>
   )
