@@ -24,13 +24,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/AnimeshRy/pindrop/internal/scan"
+	"github.com/AnimeshRy/pindrop/internal/toolpath"
 )
 
 // Name is the scanner identifier recorded on every finding this adapter
@@ -42,7 +41,8 @@ const Name = "osv"
 const defaultTimeout = 10 * time.Minute
 
 // installHint is shown when the binary is missing. It is user-facing text.
-const installHint = "Install OSV-Scanner: https://google.github.io/osv-scanner/installation/"
+const installHint = "Run `pindrop setup` to install a pinned, checksum-verified copy.\n" +
+	"  Install OSV-Scanner yourself: https://google.github.io/osv-scanner/installation/"
 
 // OSV-Scanner's exit codes, from its documented contract and verified against
 // v2.4.0.
@@ -136,9 +136,10 @@ func (s *Scanner) Preflight(ctx context.Context) error {
 	if err != nil {
 		return &scan.UnavailableError{
 			Scanner: Name,
-			Reason:  fmt.Sprintf("%q not found in PATH or alongside the pindrop binary", s.binary),
-			Hint:    installHint + "\n  Or point at an existing copy: --osv-binary /path/to/osv-scanner",
-			Err:     err,
+			Reason: fmt.Sprintf("%q not found in PATH, alongside the pindrop binary, or in %s",
+				s.binary, toolpath.Display(toolpath.ManagedDir())),
+			Hint: installHint + "\n  Or point at an existing copy: --osv-binary /path/to/osv-scanner",
+			Err:  err,
 		}
 	}
 
@@ -160,31 +161,10 @@ func (s *Scanner) Preflight(ctx context.Context) error {
 	return nil
 }
 
-// resolve locates the OSV-Scanner executable, consulting PATH first and then the
-// directory holding the running pindrop binary, so that a tool installed by
-// `make setup` into ./bin is found without ./bin being on PATH.
+// resolve locates the OSV-Scanner executable. See [toolpath.LookupOrigin] for the
+// search order, which is shared by every adapter.
 func (s *Scanner) resolve() (string, error) {
-	if strings.ContainsRune(s.binary, os.PathSeparator) {
-		return exec.LookPath(s.binary)
-	}
-
-	path, pathErr := exec.LookPath(s.binary)
-	if pathErr == nil {
-		return path, nil
-	}
-
-	self, err := os.Executable()
-	if err != nil {
-		return "", pathErr
-	}
-
-	sibling := filepath.Join(filepath.Dir(self), s.binary)
-	if resolved, err := exec.LookPath(sibling); err == nil {
-		return resolved, nil
-	}
-
-	// Report the PATH failure: it is the one the user can act on.
-	return "", pathErr
+	return toolpath.Lookup(s.binary, toolpath.Env(s.binary))
 }
 
 // Scan runs OSV-Scanner against target and converts its report into findings.

@@ -7,10 +7,13 @@
 | **Go** | 1.26+ | `go.mod` declares `toolchain go1.26.5`; with the default `GOTOOLCHAIN=auto` an older Go auto-downloads it |
 | **Node** | 22.13+ | Floor is set by pnpm 11, which is stricter than Vite 8's |
 | **pnpm** | 11.x | `corepack enable pnpm` |
-| **Trivy** | 0.72.0 | Scanner used by `pindrop scan`; `make setup` installs it |
-| **OSV-Scanner** | 2.4.0 | Scanner; `make setup` installs it |
-| **Opengrep** | 1.26.0 | Scanner; `make setup` installs it |
-| **TruffleHog** | 3.96.0 | Scanner; `make setup` installs it. AGPL — subprocess only, never imported |
+| **Trivy** | 0.72.0 | Scanner; `make setup` or `pindrop setup` installs it |
+| **OSV-Scanner** | 2.4.0 | Scanner; `make setup` or `pindrop setup` installs it |
+| **Opengrep** | 1.26.0 | Scanner; `make setup` or `pindrop setup` installs it |
+| **TruffleHog** | 3.96.0 | Scanner; `make setup` or `pindrop setup` installs it. AGPL — subprocess only, never imported |
+
+Node and pnpm are needed only for the dashboard. `make build-go` builds a working
+CLI with Go alone.
 
 Every scanner is optional at runtime. A missing one is reported with install
 guidance and dropped, so `pindrop scan .` works with any subset installed; only
@@ -23,6 +26,12 @@ make setup          # Go tools + scanners into ./bin, then pnpm install
 make build          # frontend build + Go binary → ./bin/pindrop
 ./bin/pindrop scan .
 ```
+
+Note this is the **contributor** path: it installs linters, formatters, frontend
+dependencies, and the scanners into `./bin`. Someone who only wants to *run*
+Pindrop needs neither Node nor `make setup` — `make build-go` then
+`./bin/pindrop setup` is enough, and installs the scanners into `~/.pindrop/bin`
+instead. See the README.
 
 ## Optional: mise
 
@@ -204,3 +213,25 @@ CI runs all of this except the reformat check, which needs a working-tree edit.
 | A secret shows as `high`, not `critical` | Verification is off by default, so nothing is proven live. Pass `--verify-secrets` — note it sends the credentials it finds to third-party APIs ([ADR 0008](../decisions/0008-trufflehog-verification-opt-in.md)) |
 | `--fail-on high` newly fails after upgrading | Unverified secrets grade `high`, so a secret-shaped placeholder that previously went unreported now trips the threshold |
 | `compile: version "goX" does not match go tool version "goY"` | An exported `GOROOT` — from your shell profile, or from mise if its `go` version differs from `go.mod`'s `toolchain`. Remove it / align the versions. The Makefile already clears it. |
+
+## Two setup paths, and which is which
+
+`make setup` is the **contributor** path. It installs the linters, formatters, and
+frontend dependencies a build needs, and puts the scanners in `./bin` beside the
+binary you just built.
+
+`pindrop setup` is the **user** path. It installs only the scanners, into
+`~/.pindrop/bin`, verifying each download against a digest committed in the binary
+([ADR 0010](../decisions/0010-managed-scanner-installation.md)). A user with a
+`pindrop` binary and no checkout has no Makefile, which is the whole reason it
+exists.
+
+They install to different directories and both work; `./bin` wins for a
+`./bin/pindrop` because the sibling lookup is searched before the managed
+directory. `pindrop setup --check` prints which copy of each scanner is actually
+resolved, and from where.
+
+After changing a pinned scanner version, run `make manifest` and review the
+digest diff. A stale manifest makes every user install fail on a checksum
+mismatch; a test asserts the manifest agrees with the Makefile's pins so the
+failure lands in `make test` instead.

@@ -161,6 +161,26 @@ $(BIN)/trufflehog:
 		| sh -s -- -b $(CURDIR)/$(BIN) $(TRUFFLEHOG_VERSION)
 	@$(BIN)/trufflehog --version 2>&1 | head -1
 
+# Regenerates the digests `pindrop setup` verifies its downloads against.
+#
+# Run this after changing a scanner version, and review the diff carefully: those
+# digests are the only thing standing between a modified upstream release and a
+# binary Pindrop hands to the user. Three of the four tools are cross-checked
+# against upstream's own published checksum file; Opengrep publishes none, so its
+# digest is trust-on-first-pin and the generator prints a cosign command for
+# verifying it by hand. See docs/decisions/0010-managed-scanner-installation.md.
+#
+# The Makefile's *_VERSION pins above and the manifest must agree — a test in
+# internal/toolinstall asserts it, so a forgotten regeneration fails `make test`
+# rather than a user's install.
+.PHONY: manifest
+manifest: ## Regenerate the pinned scanner manifest and its checksums
+	$(GO) run ./internal/toolinstall/genmanifest
+
+.PHONY: manifest-check
+manifest-check: ## Verify the committed manifest still matches upstream
+	$(GO) run ./internal/toolinstall/genmanifest -check
+
 .PHONY: mise
 mise: ## Install the optional mise-managed toolchain (see mise.toml)
 	@test -n "$(MISE)" \

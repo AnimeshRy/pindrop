@@ -17,6 +17,7 @@ import (
 	"github.com/AnimeshRy/pindrop/internal/scan/osv"
 	"github.com/AnimeshRy/pindrop/internal/scan/trivy"
 	"github.com/AnimeshRy/pindrop/internal/scan/trufflehog"
+	"github.com/AnimeshRy/pindrop/internal/tui"
 )
 
 // defaultTableLimit caps the terminal table by default.
@@ -44,6 +45,9 @@ type scanOptions struct {
 	trufflehogBinary       string
 	trufflehogExcludePaths []string
 	verifySecrets          bool
+
+	progress  string
+	noInstall bool
 }
 
 func newScanCommand(g *globals) *cobra.Command {
@@ -103,33 +107,27 @@ directory.`),
 		"enable OSV-Scanner reachability analysis (slower; compiles the target)")
 	f.StringVar(&opts.cacheDir, "cache-dir", "",
 		"directory for scanner caches, such as the vulnerability database")
+	f.StringVar(&opts.progress, "progress", "auto",
+		"progress display: auto, animated, plain, none")
+	f.BoolVar(&opts.noInstall, "no-install", false,
+		"never offer to install missing scanners, even on a terminal")
 
 	return cmd
 }
 
-func runScan(ctx context.Context, g *globals, opts *scanOptions, path string) error {
-	format, err := report.ParseFormat(opts.format)
-	if err != nil {
-		return err
-	}
-
-	minSeverity, err := parseOptionalSeverity(opts.minSeverity, "--min-severity")
-	if err != nil {
-		return err
-	}
-	failOn, err := parseOptionalSeverity(opts.failOn, "--fail-on")
-	if err != nil {
-		return err
-	}
-
-	target, err := resolveTarget(path)
-	if err != nil {
-		return err
-	}
-
-	// The scanner registry. Adapters are wired here and nowhere else: internal/scan
-	// must not import them, or the dependency becomes a cycle.
-	scanners := []scan.Scanner{
+// scannerRegistry constructs every scanner Pindrop knows about, configured by
+// opts.
+//
+// This is the composition root's composition root: adapters are wired here and
+// nowhere else, because internal/scan must not import them or the dependency
+// becomes a cycle. Adding a scanner touches exactly two places — its new
+// subpackage and this slice.
+//
+// It is a function rather than an inline literal so that `pindrop setup --check`
+// can preflight the same registry a scan would build. A bespoke --version check
+// there could pass while a real scan failed.
+func scannerRegistry(opts *scanOptions) []scan.Scanner {
+	return []scan.Scanner{
 		trivy.New(
 			trivy.WithBinary(opts.trivyBinary),
 			trivy.WithScanners(opts.scanners...),
@@ -149,6 +147,50 @@ func runScan(ctx context.Context, g *globals, opts *scanOptions, path string) er
 			trufflehog.WithExcludePaths(opts.trufflehogExcludePaths...),
 		),
 	}
+}
+
+// scanRequest is a validated `pindrop scan` invocation.
+type scanRequest struct {
+	format      report.Format
+	minSeverity scan.Severity
+	failOn      scan.Severity
+	target      scan.Target
+}
+
+// parseScanOptions validates every flag before anything expensive happens.
+//
+// Grouped so that a mistyped --format fails before a scanner is preflighted,
+// rather than after a minute of scanning.
+func parseScanOptions(opts *scanOptions, path string) (scanRequest, error) {
+	var r scanRequest
+	var err error
+
+	if r.format, err = report.ParseFormat(opts.format); err != nil {
+		return r, err
+	}
+	if r.minSeverity, err = parseOptionalSeverity(opts.minSeverity, "--min-severity"); err != nil {
+		return r, err
+	}
+	if r.failOn, err = parseOptionalSeverity(opts.failOn, "--fail-on"); err != nil {
+		return r, err
+	}
+	if err = tui.ValidateMode(opts.progress); err != nil {
+		return r, err
+	}
+	if r.target, err = resolveTarget(path); err != nil {
+		return r, err
+	}
+	return r, nil
+}
+
+func runScan(ctx context.Context, g *globals, opts *scanOptions, path string) error {
+	req, err := parseScanOptions(opts, path)
+	if err != nil {
+		return err
+	}
+	format, minSeverity, failOn, target := req.format, req.minSeverity, req.failOn, req.target
+
+	scanners := scannerRegistry(opts)
 
 	// Preflight before scanning so a missing tool is reported as setup guidance
 	// rather than as a mid-scan failure.
@@ -157,18 +199,41 @@ func runScan(ctx context.Context, g *globals, opts *scanOptions, path string) er
 	// Requiring every tool to be installed would break `pindrop scan .` on a
 	// machine that has only Trivy, which is the zero-setup first run the product
 	// depends on. Only having nothing left to run is fatal.
-	usable, unavailable := scan.Usable(ctx, scanners)
-	if len(usable) == 0 {
-		return unavailable
+	usable, unavailable, err := resolveScanners(ctx, scanners, opts)
+	if err != nil {
+		return err
 	}
-	if unavailable != nil {
-		fmt.Fprintf(os.Stderr, "Skipping unavailable scanners:\n%s\n\n", indentLines(unavailable.Error()))
+
+	mode := tui.ResolveMode(opts.progress, isTerminal(os.Stderr), os.Getenv("TERM"), g.logLevel)
+
+	// The skipped block is text above the display in plain mode, and dimmed rows
+	// inside it when animated — printing both would say the same thing twice.
+	if unavailable != nil && mode != tui.ModeAnimated {
+		fmt.Fprintf(os.Stderr, "Skipping unavailable scanners:\n%s\n"+
+			"  Run `pindrop setup` to install the missing ones.\n\n",
+			indentLines(unavailable.Error()))
 	}
-	scanners = usable
 
 	slog.Debug("starting scan", "path", target.Path, "scanners", len(scanners))
 
-	results, scanErr := scan.Run(ctx, scanners, target)
+	progress := tui.StartScan(target.Path, tui.Options{
+		Mode:  mode,
+		Color: g.colorFor(os.Stderr),
+	})
+	// Safety net; the success path stops it explicitly before writing to stdout.
+	defer progress.Stop()
+
+	// Replayed into the display so unavailable scanners appear as dimmed rows
+	// rather than as a wall of text the user has to reconcile with the rows.
+	if mode == tui.ModeAnimated && unavailable != nil {
+		replaySkipped(scanners, usable, progress)
+	}
+
+	results, scanErr := scan.Run(ctx, usable, target, scan.WithObserver(progress))
+
+	// The display must be finished and the cursor restored before the report is
+	// written, or a frame can interleave with the table on stdout.
+	progress.Stop()
 	if len(results) == 0 && scanErr != nil {
 		return scanErr
 	}
@@ -305,4 +370,84 @@ func exceedsThreshold(results []scan.Result, threshold scan.Severity) (scan.Seve
 		}
 	}
 	return worst, found
+}
+
+// replaySkipped reports the unavailable scanners into the display.
+//
+// Their absence is known before the display exists, because the install offer has
+// to happen first — a prompt and an animation cannot share stderr. Rather than
+// preflighting a third time, the skipped set is derived by diffing the registry
+// against what survived.
+//
+// The indices deliberately start after the usable set rather than reusing the
+// registry's. scan.Run reports on `usable`, which is re-indexed from zero, so a
+// skipped scanner sitting at its registry index would be overwritten by whichever
+// usable scanner happens to land on the same row — which is exactly what happened
+// the first time this was wired up. Placing them last also reads better: the tools
+// that ran, then the ones that could not.
+func replaySkipped(scanners, usable []scan.Scanner, obs scan.Observer) {
+	live := make(map[string]bool, len(usable))
+	for _, s := range usable {
+		live[s.Name()] = true
+	}
+
+	next := len(usable)
+	for _, s := range scanners {
+		if !live[s.Name()] {
+			obs.Observe(scan.Event{Scanner: s.Name(), Index: next, Phase: scan.PhaseSkipped})
+			next++
+		}
+	}
+}
+
+// resolveScanners preflights the registry, offering to install what is missing.
+//
+// The offer happens here rather than inside the display, because a prompt and an
+// animation cannot share stderr. Declining is not an error — the scan proceeds
+// with whatever is available, which is the standing rule that a missing scanner
+// reduces coverage rather than failing the run. Only an empty usable set is fatal.
+func resolveScanners(ctx context.Context, scanners []scan.Scanner, opts *scanOptions) (
+	usable []scan.Scanner, unavailable error, err error,
+) {
+	usable, unavailable = scan.Usable(ctx, scanners)
+
+	if unavailable != nil && !opts.noInstall {
+		installed, err := offerInstall(ctx, unavailable, opts.overriddenBinaries())
+		if err != nil {
+			return nil, nil, err
+		}
+		if installed {
+			usable, unavailable = scan.Usable(ctx, scanners)
+		}
+	}
+
+	if len(usable) == 0 {
+		return nil, nil, fmt.Errorf(
+			"no scanners are installed, so there is nothing to scan with\n\n%s\n\n"+
+				"Run `pindrop setup` to install them",
+			indentLines(unavailable.Error()))
+	}
+	return usable, unavailable, nil
+}
+
+// overriddenBinaries names the tools whose executable the user pointed at
+// explicitly.
+//
+// Offering to install one of these would be a lie: `pindrop setup` writes to the
+// managed directory, and a scan told to use /opt/trivy will keep looking there.
+// The right answer for an override that does not resolve is the existing error,
+// which names the path they gave.
+func (o *scanOptions) overriddenBinaries() map[string]bool {
+	overridden := map[string]bool{}
+	for _, b := range []struct{ value, def, binary string }{
+		{o.trivyBinary, "trivy", "trivy"},
+		{o.osvBinary, "osv-scanner", "osv-scanner"},
+		{o.opengrepBinary, "opengrep", "opengrep"},
+		{o.trufflehogBinary, "trufflehog", "trufflehog"},
+	} {
+		if b.value != b.def {
+			overridden[b.binary] = true
+		}
+	}
+	return overridden
 }

@@ -199,3 +199,67 @@ func TestExtractRulesIsolated(t *testing.T) {
 		t.Errorf("both extractions used %s, want separate directories", a)
 	}
 }
+
+// TestUTF8Env pins down the locale guarantee.
+//
+// Without it, Opengrep's bundled CPython defaults to ASCII, fails to read a rule
+// file containing an em dash, and the scan silently reports zero code findings as
+// a partial success. That is the worst failure mode this adapter has, and the
+// only symptom is a missing scanner line.
+func TestUTF8Env(t *testing.T) {
+	tests := []struct {
+		name string
+		// env is set before building the child environment.
+		env map[string]string
+		// wantForced is whether LC_ALL should be appended by us.
+		wantForced bool
+	}{
+		{
+			name:       "no locale at all is forced to UTF-8",
+			env:        map[string]string{"LC_ALL": "", "LC_CTYPE": "", "LANG": ""},
+			wantForced: true,
+		},
+		{
+			name:       "a non-UTF-8 LC_ALL is overridden",
+			env:        map[string]string{"LC_ALL": "C", "LC_CTYPE": "", "LANG": ""},
+			wantForced: true,
+		},
+		{
+			name:       "an existing UTF-8 LC_ALL is respected",
+			env:        map[string]string{"LC_ALL": "en_US.UTF-8", "LC_CTYPE": "", "LANG": ""},
+			wantForced: false,
+		},
+		{
+			name:       "a UTF-8 LANG is respected when LC_ALL is unset",
+			env:        map[string]string{"LC_ALL": "", "LC_CTYPE": "", "LANG": "C.UTF-8"},
+			wantForced: false,
+		},
+		{
+			name:       "LC_ALL wins over a UTF-8 LANG",
+			env:        map[string]string{"LC_ALL": "C", "LC_CTYPE": "", "LANG": "en_US.UTF-8"},
+			wantForced: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// t.Setenv forbids t.Parallel.
+			for k, v := range tt.env {
+				t.Setenv(k, v)
+			}
+
+			env := utf8Env()
+
+			// Count only the trailing override this function appends, so an
+			// inherited LC_ALL is not mistaken for a forced one.
+			var forced bool
+			if n := len(env); n > 0 && env[n-1] == "LC_ALL="+fallbackLocale {
+				forced = true
+			}
+
+			if forced != tt.wantForced {
+				t.Errorf("forced LC_ALL: got = %t, want %t", forced, tt.wantForced)
+			}
+		})
+	}
+}

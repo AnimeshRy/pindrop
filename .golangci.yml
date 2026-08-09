@@ -63,6 +63,13 @@ linters:
           - gosec
           - unparam
 
+      # The manifest generator is a developer tool, run by hand from a Make
+      # target and never shipped. It reads the paths its own flags name, which
+      # G304 cannot distinguish from an untrusted path.
+      - path: internal/toolinstall/genmanifest/
+        linters:
+          - gosec
+
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

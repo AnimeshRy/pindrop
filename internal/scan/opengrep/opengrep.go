@@ -41,11 +41,11 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/AnimeshRy/pindrop/internal/scan"
+	"github.com/AnimeshRy/pindrop/internal/toolpath"
 )
 
 // Name is the scanner identifier recorded on every finding this adapter
@@ -60,7 +60,8 @@ const Name = "opengrep"
 const defaultTimeout = 10 * time.Minute
 
 // installHint is shown when the binary is missing. It is user-facing text.
-const installHint = "Install Opengrep: curl -fsSL https://raw.githubusercontent.com/opengrep/opengrep/main/install.sh | bash"
+const installHint = "Run `pindrop setup` to install a pinned, checksum-verified copy.\n" +
+	"  Install Opengrep yourself: https://github.com/opengrep/opengrep#installation"
 
 // Opengrep's exit codes, from src/osemgrep/core/Exit_code.ml at v1.26.0 and
 // verified against the binary.
@@ -170,9 +171,10 @@ func (s *Scanner) Preflight(ctx context.Context) error {
 	if err != nil {
 		return &scan.UnavailableError{
 			Scanner: Name,
-			Reason:  fmt.Sprintf("%q not found in PATH or alongside the pindrop binary", s.binary),
-			Hint:    installHint + "\n  Or point at an existing copy: --opengrep-binary /path/to/opengrep",
-			Err:     err,
+			Reason: fmt.Sprintf("%q not found in PATH, alongside the pindrop binary, or in %s",
+				s.binary, toolpath.Display(toolpath.ManagedDir())),
+			Hint: installHint + "\n  Or point at an existing copy: --opengrep-binary /path/to/opengrep",
+			Err:  err,
 		}
 	}
 
@@ -195,31 +197,58 @@ func (s *Scanner) Preflight(ctx context.Context) error {
 	return nil
 }
 
-// resolve locates the Opengrep executable, consulting PATH first and then the
-// directory holding the running pindrop binary, so that a tool installed by
-// `make setup` into ./bin is found without ./bin being on PATH.
+// fallbackLocale is used when the inherited environment names no UTF-8 locale.
+//
+// C.UTF-8 rather than a language-specific value: it needs no generated locale
+// data, Python accepts it on every platform including macOS, and it does not
+// change any tool's message language.
+const fallbackLocale = "C.UTF-8"
+
+// utf8Env returns the parent environment, guaranteeing a UTF-8 locale.
+//
+// Opengrep is a Nuitka-compiled CPython program, so it derives its default text
+// encoding from the locale. In an environment naming none — a cron job, a systemd
+// unit, a slim container, many CI runners — that default is ASCII, and reading a
+// rule file containing any non-ASCII byte then dies with UnicodeDecodeError.
+//
+// This is not hypothetical: Pindrop's own bundled rules use em dashes in their
+// messages, so with no locale set every Opengrep finding vanishes and the scan
+// reports a *partial success* — the silent-zero-findings failure that is the worst
+// outcome this adapter can produce.
+//
+// Only set when the inherited locale is not already UTF-8, so a user who has
+// chosen one keeps it. Note PYTHONUTF8 does not work here: the Nuitka build
+// ignores it, which is why this sets the locale instead.
+//
+// Applied to the scan and not to Preflight because --version reads no rule files
+// and so never trips the bug — which is exactly why this stayed invisible until a
+// scan ran with a stripped environment.
+func utf8Env() []string {
+	env := os.Environ()
+
+	// LC_ALL overrides LC_CTYPE, which overrides LANG. If any of them already
+	// selects UTF-8, leave the environment alone.
+	for _, key := range []string{"LC_ALL", "LC_CTYPE", "LANG"} {
+		value := os.Getenv(key)
+		if value == "" {
+			continue
+		}
+		if strings.Contains(strings.ToUpper(value), "UTF-8") ||
+			strings.Contains(strings.ToUpper(value), "UTF8") {
+			return env
+		}
+		// A non-UTF-8 locale is set deliberately or inherited from a service
+		// manager; either way the rules cannot be read under it.
+		break
+	}
+
+	return append(env, "LC_ALL="+fallbackLocale)
+}
+
+// resolve locates the Opengrep executable. See [toolpath.LookupOrigin] for the
+// search order, which is shared by every adapter.
 func (s *Scanner) resolve() (string, error) {
-	if strings.ContainsRune(s.binary, os.PathSeparator) {
-		return exec.LookPath(s.binary)
-	}
-
-	path, pathErr := exec.LookPath(s.binary)
-	if pathErr == nil {
-		return path, nil
-	}
-
-	self, err := os.Executable()
-	if err != nil {
-		return "", pathErr
-	}
-
-	sibling := filepath.Join(filepath.Dir(self), s.binary)
-	if resolved, err := exec.LookPath(sibling); err == nil {
-		return resolved, nil
-	}
-
-	// Report the PATH failure: it is the one the user can act on.
-	return "", pathErr
+	return toolpath.Lookup(s.binary, toolpath.Env(s.binary))
 }
 
 // Scan runs Opengrep against target and converts its report into findings.
@@ -327,6 +356,7 @@ func (s *Scanner) run(ctx context.Context, path string, configs []string) ([]byt
 	cmd := exec.CommandContext(ctx, binary, args...)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+	cmd.Env = utf8Env()
 
 	err = cmd.Run()
 	if err == nil {
