@@ -34,7 +34,7 @@ on one problem is one issue. The live rows go to stderr, so the table on stdout
 still pipes cleanly into `jq`.
 
 > **Status: early.** Four scanners, no persistence, no accounts. Cross-scan
-> diffing and triage are next — see the [roadmap](docs/product/roadmap.md).
+> diffing and triage are next.
 
 ## Why
 
@@ -48,7 +48,7 @@ one model instead of four JSON shapes, identity that survives code moving
 around, deduplication across tools, triage decisions that stick forever, and
 ranking that cuts the list down to what matters.
 
-That layer is the product. More in [docs/product/vision.md](docs/product/vision.md).
+That layer is the product.
 
 ## Install
 
@@ -194,8 +194,7 @@ violations via **Trivy**; a second advisory corpus via **OSV-Scanner**; insecure
 patterns in source code via **Opengrep**, running rules we write ourselves; and
 credentials via **TruffleHog**, which can additionally prove a key is *live* —
 opt-in with `--verify-secrets`, because doing so sends the secrets it finds to
-third-party APIs. zizmor is next; see
-[docs/architecture/scanners.md](docs/architecture/scanners.md).
+third-party APIs. zizmor is next.
 
 Two tools reporting the same problem collapse into one issue, and their agreement
 becomes a confidence signal — which is why the fixture's 25 raw findings are shown
@@ -214,8 +213,6 @@ Identity deliberately excludes line numbers and the reporting scanner. Insert a
 line and nothing churns. Two tools reporting the same problem collapse into one
 issue, and their agreement becomes a confidence signal.
 
-[How it works](docs/architecture/finding-model.md).
-
 ## Development
 
 ```bash
@@ -232,14 +229,17 @@ make help      # everything else
 work — `./bin` wins for a `./bin/pindrop`, because the sibling lookup is searched
 before the managed directory.
 
-[Setup guide](docs/development/setup.md) ·
-[Conventions](docs/development/conventions.md) ·
-[Architecture](docs/architecture/overview.md) ·
-[Decisions](docs/decisions/)
+Design docs (architecture, ADRs, setup details) live in a private repository
+and are checked out as the `docs/` git submodule when you have access:
+
+```bash
+git clone --recurse-submodules git@github.com:AnimeshRy/pindrop.git
+# or: git submodule update --init docs
+```
 
 ## License
 
-[Apache-2.0](LICENSE) — see [ADR 0009](docs/decisions/0009-apache-2-license.md).
+[Apache-2.0](LICENSE).
 
 The scanners Pindrop runs are separately licensed and run as subprocesses, never
 imported. `NOTICE` lists them.

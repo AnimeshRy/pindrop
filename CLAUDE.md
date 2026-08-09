@@ -1,5 +1,8 @@
 # Pindrop — context for Claude Code
 
+Design docs live in the private [pindrop-docs](https://github.com/AnimeshRy/pindrop-docs)
+submodule at `docs/`. After cloning, run `git submodule update --init docs`.
+
 ## What this is
 
 A security scanning product for small teams shipping AI-generated code.
