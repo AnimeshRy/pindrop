@@ -1,0 +1,315 @@
+web/src/routes/__root.tsx
+  s_4ca522517edb2a::t_4f5bb112b75d62 42
+  s_4ca522517edb2a::t_cb2a42171420f9 24
+internal/scan/opengrep/opengrep.go
+  s_4ca522517edb2a::t_ef19456bbe9c9f 366
+  s_4ca522517edb2a::t_bc986d4b5bb807 271
+  s_4ca522517edb2a::t_33fce75ac91180 305-310,328-342,350-354
+  s_4ca522517edb2a::t_2a1478b470772f 355-363
+internal/vcs/testdata/normal/dot-git/refs/heads/main
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1
+internal/cli/root.go
+  s_4ca522517edb2a::t_0d0ece64cedffe 59-60
+internal/report/table.go
+  s_4ca522517edb2a::t_609d5ccfe3337e 144
+  s_4ca522517edb2a::t_86b04e711ae920 112
+  s_4ca522517edb2a::t_618448cb11441a 81-82,84-91
+  s_4ca522517edb2a::t_f762e7adbb75aa 162-163,165
+internal/cli/excludes_agreement_test.go
+  s_4ca522517edb2a::t_d70eab295ff5d6 1-26,28-67,69-96,99-151
+  s_4ca522517edb2a::t_0ef4b599dd22af 27,68
+  s_4ca522517edb2a::t_80f1fb49447e9b 97-98
+internal/history/lock_test.go
+  s_4ca522517edb2a::t_13e99d9b1ad1ff 1-80
+internal/cli/config_test.go
+  s_4ca522517edb2a::t_9ac979deb827b7 5,24-25,30-31,35-36,42-43
+  s_4ca522517edb2a::t_0e38980ee59c32 1-4,6-23,26-29,32-34,37-41,44-98,100-157,164-167,182,197,215,228,242,253
+  s_4ca522517edb2a::t_04e0bd38f685d6 99
+  s_4ca522517edb2a::t_e8dcef92f0353e 158-163,168-181,183-196,198-214,216-227,229-241,243-252
+internal/scan/fingerprint_test.go
+  s_4ca522517edb2a::t_3771a34daf35b4 61-72
+  s_4ca522517edb2a::t_852bcb4c7cf7f6 60
+internal/vcs/testdata/packed/dot-git/packed-refs
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1-5
+internal/scan/run.go
+  s_4ca522517edb2a::t_5961bf503fd04e 53-60
+internal/history/files.go
+  s_4ca522517edb2a::t_114fa67aa94f6c 11
+  s_4ca522517edb2a::t_ed172c330861c7 66-69,133-137
+  s_4ca522517edb2a::t_a8d49ea2fbc292 224,245,253,258
+  s_4ca522517edb2a::t_2e800fdcb02dad 1-10,12-65,70-132,138-223,225-244,246-252,254-257,259-351
+internal/history/state_test.go
+  s_4ca522517edb2a::t_a16ceeecc31982 1-48,56-115,121-140,142-246
+  s_4ca522517edb2a::t_a8d49ea2fbc292 53,119,141
+  s_4ca522517edb2a::t_ed172c330861c7 49-52,54-55,116-118,120
+internal/vcs/testdata/normal/dot-git/config
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1-14
+internal/cli/scan.go
+  s_4ca522517edb2a::t_5b97fe2a7874ec 50-53
+  s_4ca522517edb2a::t_e265a9bd2aa021 54-56
+  s_4ca522517edb2a::t_674297ae5e76e8 201-212
+  s_4ca522517edb2a::t_2d6132aaf7eb24 276-285
+  s_4ca522517edb2a::t_7903931e4d489c 118-121
+  s_4ca522517edb2a::t_2f4bff2081aed5 122-127
+  s_4ca522517edb2a::t_d552f159e0fe40 248
+  s_4ca522517edb2a::t_b8f5d8a098e7c6 11
+internal/scan/run_test.go
+  s_4ca522517edb2a::t_1f9d20f854073a 151-213
+internal/vcs/testdata/plain/sub/README.txt
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1
+internal/vcs/vcs.go
+  s_4ca522517edb2a::t_8d66f3c8a0167f 89-91
+  s_4ca522517edb2a::t_3ef4590910084c 549-552,556-557
+  s_4ca522517edb2a::t_1acbe40ed44510 470-479
+  s_4ca522517edb2a::t_5da4a99f772121 1-88,92-469,480-548,553-555,558-587
+internal/scan/trufflehog/trufflehog_test.go
+  s_4ca522517edb2a::t_e598dc414e7353 362
+  s_4ca522517edb2a::t_393586ae046879 315-316,320-328
+  s_4ca522517edb2a::t_acd73e346d5447 411,417
+web/src/lib/utils.ts
+  s_4ca522517edb2a::t_7067269d8f97dc 17-67
+internal/vcs/testdata/malformed/dot-git/config
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1-9
+internal/scan/osv/osv_test.go
+  s_4ca522517edb2a::t_11e3624fdb4a3c 1-78
+web/src/components/DeltaBadges.tsx
+  s_4ca522517edb2a::t_09b5e5e567d963 1-77
+web/src/components/RepoTable.tsx
+  s_4ca522517edb2a::t_115d6838e6bdf1 1-225
+web/src/components/RunTimeline.tsx
+  s_4ca522517edb2a::t_5ddacaf38055fc 1-79
+web/src/routes/index.tsx
+  s_4ca522517edb2a::t_4ca0cb7a08d810 5-6
+  s_4ca522517edb2a::t_8fbdd7eeb79a44 1,4,9,12-13,15-31,40-44,50-54,57,72-74,76-95,97,103
+  s_4ca522517edb2a::t_24a37ada7846dc 34-39
+internal/vcs/testdata/malformed/dot-git/HEAD
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1
+internal/vcs/testdata/submodule/parent/child/dot-git
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1
+internal/scan/canonical.go
+  s_4ca522517edb2a::t_50807b2c32fe26 136-139
+CLAUDE.md
+  s_4ca522517edb2a::t_f04d44ad13f147 194-216
+  s_4ca522517edb2a::t_726faa9464225b 21-39
+  s_4ca522517edb2a::t_1af8397b46efa1 121-153
+internal/vcs/testdata/normal/dot-git/HEAD
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1
+web/src/routes/repos.$repoId.tsx
+  s_4ca522517edb2a::t_9af98847d5d0dc 1-92
+internal/history/lock.go
+  s_4ca522517edb2a::t_30b028e63a495e 54-55
+  s_4ca522517edb2a::t_5c59d2f562b9e9 1-53,56-110
+internal/scan/osv/osv.go
+  s_4ca522517edb2a::t_d1d6eb015624f4 202-206,212-213,222-231
+  s_4ca522517edb2a::t_c7642858afdbbd 177
+  s_4ca522517edb2a::t_b7ba873a2d9428 243
+  s_4ca522517edb2a::t_2f23d74670af56 232-240
+internal/httpapi/history_test.go
+  s_4ca522517edb2a::t_821be5a449cfc2 337,345
+  s_4ca522517edb2a::t_943bf39ba71b70 178,447-465
+  s_4ca522517edb2a::t_931a90a1e45571 9,443
+  s_4ca522517edb2a::t_f624739c5fe995 267-297
+  s_4ca522517edb2a::t_c6734c9e3cd8cd 1-8,10-177,179-266,298-336,338-344,346-442,444-446,466-883
+internal/vcs/testdata/worktree/main/dot-git/packed-refs
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1-3
+internal/vcs/testdata/packed/dot-git/config
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1-2
+internal/history/query.go
+  s_4ca522517edb2a::t_4a15e6259ccadb 538
+  s_4ca522517edb2a::t_0d47c7e83cc06c 140-153
+  s_4ca522517edb2a::t_922d7c230844e5 117-121,126-128,131-133
+  s_4ca522517edb2a::t_a8d49ea2fbc292 466
+  s_4ca522517edb2a::t_3819015b890acd 136,177
+  s_4ca522517edb2a::t_c124230002f9d6 1-116,122-125,129-130,134-135,137-139,154-176,178-465,467-537,539-540
+internal/vcs/testdata/packed/dot-git/HEAD
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1
+internal/history/state.go
+  s_4ca522517edb2a::t_a8d49ea2fbc292 40,53,115
+  s_4ca522517edb2a::t_784c19b4460600 1-6,8-39,41-52,54-114,116-234
+  s_4ca522517edb2a::t_cf9ee8d929ec71 7
+internal/history/store.go
+  s_4ca522517edb2a::t_6b3c4486b9cf60 517-525,527-532,537-542
+  s_4ca522517edb2a::t_033ac39fbacd5c 137,146-148
+  s_4ca522517edb2a::t_e182b34f06ca6f 498
+  s_4ca522517edb2a::t_70ce7cd51cba07 126-130
+  s_4ca522517edb2a::t_d3cc76ec1dedfd 430
+  s_4ca522517edb2a::t_3819015b890acd 183,261,272,297,339
+  s_4ca522517edb2a::t_62145a25f8ba81 214,224-226,228-233
+  s_4ca522517edb2a::t_b43c7b132ebe9f 1-125,131-136,138,143-145,149-182,184-213,215-223,227,234-260,262-271,273-296,298-338,340-429,431-497,499-516,543-565
+  s_4ca522517edb2a::t_ed172c330861c7 139-142
+  s_4ca522517edb2a::t_53dae16fcd590c 526,533-536
+internal/scan/exclude.go
+  s_4ca522517edb2a::t_ad3b4011bcc777 1-399
+internal/cli/status.go
+  s_4ca522517edb2a::t_ed172c330861c7 110-111,115,119,125,128,136,138,146
+  s_4ca522517edb2a::t_bc509c775443a7 1-109,112-114,116-118,120-124,126-127,129-135,137,139-145,147-182
+internal/httpapi/history.go
+  s_4ca522517edb2a::t_af1ef95a8f9b07 101-114,116-132
+  s_4ca522517edb2a::t_a58f8ff57ece3c 21
+  s_4ca522517edb2a::t_f33e3c70ff55f8 57-88
+  s_4ca522517edb2a::t_a9baaee9bb626d 1-20,22-56,89-100,115,133-475
+internal/report/sarif.go
+  s_4ca522517edb2a::t_8343df7799e312 105-106,108-111
+internal/cli/history_record.go
+  s_4ca522517edb2a::t_bd44107331d418 11
+  s_4ca522517edb2a::t_72c8cdc5944576 78-81
+  s_4ca522517edb2a::t_2322c8d4f2fb4e 131-132,134-153,155,157,160
+  s_4ca522517edb2a::t_4a15dc37dbf8f1 97-100
+  s_4ca522517edb2a::t_76fc252c04c0b0 1-10,12-77,82-96,101-130,133,154,156,158-159,161-205
+internal/history/history.go
+  s_4ca522517edb2a::t_7c646c98ec1520 281-284
+  s_4ca522517edb2a::t_0ef917494e3dc3 363-375
+  s_4ca522517edb2a::t_406cce4af01a3b 1-21,23-201,205-280,286-362,377-445
+  s_4ca522517edb2a::t_a8d49ea2fbc292 22,285,376
+  s_4ca522517edb2a::t_09eeefcab34447 202-204
+web/src/components/FindingsTable.tsx
+  s_4ca522517edb2a::t_d90323ba0be3ce 102
+  s_4ca522517edb2a::t_83747e02acdd99 13-14,17-22,24-26,32-35,38-49
+web/src/lib/api.ts
+  s_4ca522517edb2a::t_68c9be25eac2d3 116-259
+  s_4ca522517edb2a::t_fbd1b19549ab76 313-378
+  s_4ca522517edb2a::t_f0ed02fa108fd4 47-53,55-56,67-93
+  s_4ca522517edb2a::t_155015ecdef974 94
+internal/report/report.go
+  s_4ca522517edb2a::t_7f2d42f7311289 64-66,79-95
+  s_4ca522517edb2a::t_39b407b68641e5 96-99
+internal/cli/serve.go
+  s_4ca522517edb2a::t_bb9acc624b8565 83,87,93
+  s_4ca522517edb2a::t_29228f9b5e7bed 63
+  s_4ca522517edb2a::t_18c68d6c4d560a 152
+  s_4ca522517edb2a::t_75b1f31c5abe56 21-22,29-31,33-36,44,46,48-53,62,64-65
+  s_4ca522517edb2a::t_45fd15d0ac81a5 121-151,153-174,176-177,179
+internal/history/atomic.go
+  s_4ca522517edb2a::t_21ee8a24e89557 1-3,5-78,80-87
+  s_4ca522517edb2a::t_edcf6d8572fa10 79
+  s_4ca522517edb2a::t_623b2e5d1ce81f 4
+web/src/components/SingleReport.tsx
+  s_4ca522517edb2a::t_47f3f2a5b034ef 1-89
+internal/toolpath/home.go
+  s_4ca522517edb2a::t_e53faea33256b5 84-113
+  s_4ca522517edb2a::t_55ae7a05d04a3e 41-45
+internal/scan/finding.go
+  s_4ca522517edb2a::t_073fb5fa218584 199-207
+internal/vcs/testdata/noremote/dot-git/HEAD
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1
+internal/history/id_test.go
+  s_4ca522517edb2a::t_4404679a89c8fb 1-166
+web/src/components/StatusBadge.tsx
+  s_4ca522517edb2a::t_dfe01d5bdd346c 1-55
+internal/scan/trufflehog/trufflehog.go
+  s_4ca522517edb2a::t_c42437a3cdf46a 200
+internal/vcs/testdata/worktree/main/dot-git/HEAD
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1
+internal/scan/status.go
+  s_4ca522517edb2a::t_825579dac5e639 1-172
+internal/vcs/testdata/detached/dot-git/HEAD
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1
+internal/vcs/testdata/worktree/main/dot-git/worktrees/wt/commondir
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1
+internal/vcs/testdata/noremote/dot-git/config
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1-4
+internal/vcs/vcs_test.go
+  s_4ca522517edb2a::t_946da5876ea3a1 215-219
+  s_4ca522517edb2a::t_8d66f3c8a0167f 330-333
+  s_4ca522517edb2a::t_dd37de6ac12e7d 1-214,220-329,334-473
+internal/scan/trufflehog/exclude.go
+  s_4ca522517edb2a::t_343d89372d2854 10-11
+  s_4ca522517edb2a::t_6f35bc29e98254 14-15,18-25,27-37,39-48
+internal/scan/fingerprint.go
+  s_4ca522517edb2a::t_447f3636dbe9b5 69-71,75-89,102
+internal/scan/dedup_test.go
+  s_4ca522517edb2a::t_64209d550bede5 299-362
+internal/httpapi/server.go
+  s_4ca522517edb2a::t_614e9059258b64 44-48
+  s_4ca522517edb2a::t_c0b114cdadb686 83
+  s_4ca522517edb2a::t_767d6e8fc013df 39-41,43,49
+  s_4ca522517edb2a::t_d657cbff54df20 84
+  s_4ca522517edb2a::t_e9b36e85663b4b 20
+  s_4ca522517edb2a::t_271c4f91b22bad 59-61,63
+README.md
+  s_4ca522517edb2a::t_74f0f5e8ab29a3 164-226
+  s_4ca522517edb2a::t_3280d5319df2c8 275-289
+  s_4ca522517edb2a::t_43bfcfc584bdc9 227
+internal/vcs/testdata/submodule/parent/dot-git/modules/child/config
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1-2
+internal/cli/history.go
+  s_4ca522517edb2a::t_0d0ece64cedffe 204,286-293
+  s_4ca522517edb2a::t_bbd394d9a8cc80 1-94,96-99,101-105,107-131,133,135-138,140-148,150-168,170-177,179-202,205-209,211-223,225-285,294
+  s_4ca522517edb2a::t_d61abb3949120a 210,224
+  s_4ca522517edb2a::t_ed172c330861c7 95,100,106,132,134,139,149,169,178,203
+internal/scan/opengrep/opengrep_test.go
+  s_4ca522517edb2a::t_6642cb63537697 8
+  s_4ca522517edb2a::t_ecebe11e78c6ed 267-357
+internal/report/report_test.go
+  s_4ca522517edb2a::t_c249a766a42474 6
+  s_4ca522517edb2a::t_4cdbcde8b20019 237-492
+internal/vcs/testdata/noremote/dot-git/refs/heads/main
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1
+internal/scan/exclude_test.go
+  s_4ca522517edb2a::t_cb73f61fd09f38 380
+  s_4ca522517edb2a::t_23f80cf719702b 28
+  s_4ca522517edb2a::t_b85e3a81a55807 1-27,29-379,381-429
+internal/vcs/testdata/normal/src/nested/keep.go.txt
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1
+internal/vcs/testdata/submodule/parent/dot-git/modules/child/HEAD
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1
+internal/scan/trivy/trivy.go
+  s_4ca522517edb2a::t_2602b8a8914871 17
+  s_4ca522517edb2a::t_2c01fccde9ed31 216-229,231-235,248-275,286-287
+  s_4ca522517edb2a::t_036711a318aa0d 290
+  s_4ca522517edb2a::t_a5f4c19d6199e1 197
+  s_4ca522517edb2a::t_b613481ced7fb6 276-285
+internal/cli/config.go
+  s_4ca522517edb2a::t_67635ce4b3b43c 138-140
+  s_4ca522517edb2a::t_7cc034cbd68972 110-111
+  s_4ca522517edb2a::t_e93998351d4763 1-109,112-137,141-196
+internal/history/store_test.go
+  s_4ca522517edb2a::t_ed172c330861c7 44-47,49,83-85
+  s_4ca522517edb2a::t_63d7fc4a88306a 1-43,50-82,86-192,194,196-205,207-246,249-251,255-335,338-763
+  s_4ca522517edb2a::t_a8d49ea2fbc292 48,193,195,206
+  s_4ca522517edb2a::t_c039e8c98ed144 247-248,252-254
+  s_4ca522517edb2a::t_8d4ab070d45550 336-337
+internal/vcs/testdata/worktree/main/dot-git/config
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1-2
+internal/vcs/testdata/worktree/wt/dot-git
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1
+internal/scan/status_test.go
+  s_4ca522517edb2a::t_9772bbc8f7ae1c 306
+  s_4ca522517edb2a::t_04d8f0eacdbf02 1-305,307-309
+internal/vcs/testdata/worktree/main/dot-git/worktrees/wt/HEAD
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1
+internal/report/json.go
+  s_4ca522517edb2a::t_33a01629d9a827 13,17-29,38-47,55-75,104,109-125,130-134,141,148-153,159-160,166-169,171-178,180
+  s_4ca522517edb2a::t_cd154f253b5a41 161-165
+internal/vcs/testdata/submodule/parent/dot-git/modules/child/refs/heads/main
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1
+internal/vcs/testdata/detached/dot-git/config
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1-2
+internal/vcs/testdata/unborn/dot-git/HEAD
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1
+internal/vcs/testdata/unborn/dot-git/config
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1-2
+internal/vcs/testdata/unborn/dot-git/refs/heads/.keep
+  s_4ca522517edb2a::t_860ddcd4cb2f59 1
+web/src/routes/repos.$repoId.runs.$runId.tsx
+  s_4ca522517edb2a::t_85873d52da02c1 1-157
+internal/scan/trivy/trivy_test.go
+  s_4ca522517edb2a::t_33b72fa6ec9cb2 6
+  s_4ca522517edb2a::t_8474bb8a0e0f0b 148-227
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "a072ec4fed4a972fe5027b9355d7346f490c7c36",
+  "prompts": {},
+  "sessions": {
+    "s_4ca522517edb2a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2869a30c-17ab-4582-9bee-48dbc3205e33",
+        "model": "claude-opus-5"
+      },
+      "human_author": "AnimeshRy <ani16september@gmail.com>"
+    }
+  }
+}
