@@ -12,6 +12,8 @@ env:
   # Keep in step with .github/workflows/ci.yml
   GO_VERSION: "1.26.5"
   NODE_VERSION: "22"
+  # Keep in step with web/package.json "packageManager" (repo root has no package.json).
+  PNPM_VERSION: "11.18.0"
 
 jobs:
   release:
@@ -31,6 +33,8 @@ jobs:
       # frontend. Without this, `pnpm --dir web build` in .goreleaser.yaml
       # fails and no binary ships with the dashboard.
       - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
 
       - uses: actions/setup-node@v6
         with:
