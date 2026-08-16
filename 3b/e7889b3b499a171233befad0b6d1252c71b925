@@ -1,0 +1,24 @@
+.github/workflows/ci.yml
+  s_94e5e156202944::t_f92d4dc0331761 20-21
+  s_94e5e156202944::t_d63daa0a12ea48 74-75
+  s_94e5e156202944::t_9022b2e47a41af 111-112
+.github/workflows/release.yml
+  s_94e5e156202944::t_6a4bff82e7a059 36-37
+  s_94e5e156202944::t_43a7dcb3197197 15-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "3be7889b3b499a171233befad0b6d1252c71b925",
+  "prompts": {},
+  "sessions": {
+    "s_94e5e156202944": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ad82d99f-3dc0-4740-b43a-efb072935175",
+        "model": "composer-2.5"
+      },
+      "human_author": "AnimeshRy <ani16september@gmail.com>"
+    }
+  }
+}
