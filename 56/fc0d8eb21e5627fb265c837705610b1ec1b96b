@@ -1,0 +1,25 @@
+README.md
+  s_94e5e156202944::t_a9cd40a470620f 55-84,95-96
+.github/workflows/ci.yml
+  s_94e5e156202944::t_b704a8527e6408 17
+.goreleaser.yaml
+  s_94e5e156202944::t_056987c05d89d8 1-92
+.github/workflows/release.yml
+  s_94e5e156202944::t_4b3a8125002772 1-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "56fc0d8eb21e5627fb265c837705610b1ec1b96b",
+  "prompts": {},
+  "sessions": {
+    "s_94e5e156202944": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ad82d99f-3dc0-4740-b43a-efb072935175",
+        "model": "composer-2.5"
+      },
+      "human_author": "AnimeshRy <ani16september@gmail.com>"
+    }
+  }
+}
