@@ -246,6 +246,10 @@ fmt: $(GOLANGCI_LINT) ## Format Go and frontend code
 	$(NO_GOROOT) $(GOLANGCI_LINT) fmt ./...
 	$(PNPM) format
 
+.PHONY: sqlc
+sqlc: ## Regenerate sqlc code for the history store
+	cd internal/history/sqlite && sqlc generate
+
 .PHONY: verify
 verify: ## Check that generated and formatted files are up to date
 	$(GO) mod tidy -diff

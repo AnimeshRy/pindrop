@@ -40,10 +40,10 @@ const dirName = ".pindrop"
 // ~/.docker set the precedent. See ADR 0011.
 //
 // Everything Pindrop keeps for itself lives under here: the scanner binaries in
-// bin/, the install record beside them, and the scan history in scans/. History
-// is machine-global rather than per-repository on purpose — a user scans a
-// checkout they do not necessarily want to write into, and a dashboard that can
-// list every repository ever scanned needs one place to look.
+// bin/, the install record beside them, and the scan history database
+// pindrop.db. History is machine-global rather than per-repository on purpose —
+// a user scans a checkout they do not necessarily want to write into, and a
+// dashboard that can list every repository ever scanned needs one place to look.
 func Home() (string, error) {
 	if dir := os.Getenv(HomeEnv); dir != "" {
 		abs, err := filepath.Abs(dir)
@@ -82,34 +82,26 @@ func EnsureDir() (string, error) {
 	return dir, nil
 }
 
-// ScansDir returns the directory holding scan history. It creates nothing; see
-// [EnsureScansDir].
-//
-// History sits beside the scanner binaries rather than inside the repository
-// being scanned, so that scanning a checkout never writes to it and so that one
-// directory holds every repository a user has ever scanned.
-func ScansDir() (string, error) {
+// DBPath returns the path to the scan history SQLite database. It creates nothing;
+// see [EnsureDBPath].
+func DBPath() (string, error) {
 	home, err := Home()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, "scans"), nil
+	return filepath.Join(home, "pindrop.db"), nil
 }
 
-// EnsureScansDir returns [ScansDir], creating it if it does not exist.
-//
-// It is created 0o700 rather than 0o750, unlike [EnsureDir]: scan history holds
-// findings, including source snippets and file paths from private repositories,
-// where the bin directory holds public release artifacts.
-func EnsureScansDir() (string, error) {
-	dir, err := ScansDir()
+// EnsureDBPath returns [DBPath], creating the home directory if needed.
+func EnsureDBPath() (string, error) {
+	home, err := Home()
 	if err != nil {
 		return "", err
 	}
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return "", fmt.Errorf("creating %s: %w", dir, err)
+	if err := os.MkdirAll(home, 0o700); err != nil {
+		return "", fmt.Errorf("creating %s: %w", home, err)
 	}
-	return dir, nil
+	return filepath.Join(home, "pindrop.db"), nil
 }
 
 // Display renders path with the user's home directory collapsed to ~, for use in

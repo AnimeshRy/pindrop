@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/AnimeshRy/pindrop/internal/history"
+	sqlitestore "github.com/AnimeshRy/pindrop/internal/history/sqlite"
 	"github.com/AnimeshRy/pindrop/internal/report"
 	"github.com/AnimeshRy/pindrop/internal/scan"
 	"github.com/AnimeshRy/pindrop/internal/toolpath"
@@ -56,12 +57,12 @@ func putHistory(
 	ran []scan.Scanner,
 	started time.Time,
 ) (history.Run, error) {
-	dir, err := history.DefaultDir()
+	path, err := history.DefaultDBPath()
 	if err != nil {
 		return history.Run{}, err
 	}
 
-	store, err := history.OpenJSON(dir)
+	store, err := sqlitestore.Open(path)
 	if err != nil {
 		return history.Run{}, err
 	}
@@ -188,18 +189,15 @@ func summarizeDelta(run history.Run) string {
 }
 
 // openHistory opens the scan-history store at its default location.
-//
-// It creates the directory if absent, so that reading history before the first
-// scan shows an empty result rather than an error the user cannot act on.
 func openHistory() (history.Store, error) {
-	dir, err := history.DefaultDir()
+	path, err := history.DefaultDBPath()
 	if err != nil {
 		return nil, fmt.Errorf("locating scan history: %w", err)
 	}
 
-	store, err := history.OpenJSON(dir)
+	store, err := sqlitestore.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("opening scan history in %s: %w", toolpath.Display(dir), err)
+		return nil, fmt.Errorf("opening scan history at %s: %w", toolpath.Display(path), err)
 	}
 	return store, nil
 }

@@ -12,7 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/AnimeshRy/pindrop/internal/history"
+	sqlitestore "github.com/AnimeshRy/pindrop/internal/history/sqlite"
 	"github.com/AnimeshRy/pindrop/internal/toolinstall"
 	"github.com/AnimeshRy/pindrop/internal/toolpath"
 )
@@ -101,12 +101,12 @@ func runUninstall(ctx context.Context, opts *uninstallOptions) error {
 				repoCount, pluralRepo(repoCount), runCount, pluralRun(runCount))
 			printf(os.Stdout, "  Delete it with: pindrop uninstall --purge-history\n")
 		} else if isTerminal(os.Stdin) && isTerminal(os.Stdout) {
-			scansDir, err := toolpath.ScansDir()
+			dbPath, err := toolpath.DBPath()
 			if err != nil {
 				return err
 			}
 			printf(os.Stdout, "\nAlso delete recorded scan history (%d %s, %d %s) at %s? [y/N] ",
-				repoCount, pluralRepo(repoCount), runCount, pluralRun(runCount), toolpath.Display(scansDir))
+				repoCount, pluralRepo(repoCount), runCount, pluralRun(runCount), toolpath.Display(dbPath))
 			ok, err := readYesNo(os.Stdin)
 			if err != nil {
 				return err
@@ -117,11 +117,11 @@ func runUninstall(ctx context.Context, opts *uninstallOptions) error {
 	}
 
 	if purge {
-		scansDir, err := toolpath.ScansDir()
+		dbPath, err := toolpath.DBPath()
 		if err != nil {
 			return err
 		}
-		if err := os.RemoveAll(scansDir); err != nil {
+		if err := removeHistoryDB(dbPath); err != nil {
 			return fmt.Errorf("removing scan history: %w", err)
 		}
 		printf(os.Stdout, "Removed scan history.\n")
@@ -155,12 +155,15 @@ func removeInstalledScanners(dir, home string, record *toolinstall.Record, names
 }
 
 func historyStats(ctx context.Context) (repos, runs int, err error) {
-	scansDir, err := toolpath.ScansDir()
+	path, err := toolpath.DBPath()
 	if err != nil {
 		return 0, 0, err
 	}
-	store, err := history.OpenJSON(scansDir)
+	store, err := sqlitestore.Open(path)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return 0, 0, nil
+		}
 		return 0, 0, fmt.Errorf("opening scan history: %w", err)
 	}
 	defer func() { _ = store.Close() }()
@@ -173,6 +176,15 @@ func historyStats(ctx context.Context) (repos, runs int, err error) {
 		runs += r.Runs
 	}
 	return len(list), runs, nil
+}
+
+func removeHistoryDB(path string) error {
+	for _, p := range []string{path, path + "-wal", path + "-shm"} {
+		if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+	return nil
 }
 
 func confirmUninstall(in io.Reader, out io.Writer, dir string, count int) (bool, error) {

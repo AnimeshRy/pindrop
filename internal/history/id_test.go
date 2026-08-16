@@ -1,12 +1,8 @@
 package history
 
 import (
-	"context"
-	"errors"
 	"net/url"
-	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -60,63 +56,6 @@ func mustUnescape(t *testing.T, s string) string {
 		t.Fatalf("unescaping %q: %v", s, err)
 	}
 	return decoded
-}
-
-func TestStoreRejectsTraversalIdentifiers(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.Background()
-	store := newStore(t)
-
-	// A file the store must never be able to reach by identifier alone.
-	outside := filepath.Join(filepath.Dir(store.Dir()), "secret.json")
-	if err := os.WriteFile(outside, []byte(`{"schemaVersion":2,"findings":[]}`), 0o600); err != nil {
-		t.Fatalf("writing %s: %v", outside, err)
-	}
-
-	hostile := []string{
-		"..",
-		"../..",
-		mustUnescape(t, "..%2f.."),
-		filepath.Base(filepath.Dir(outside)),
-		strings.TrimSuffix(filepath.Base(outside), ".json"),
-	}
-
-	for _, id := range hostile {
-		if _, err := store.RepoByID(ctx, RepoID(id)); !errors.Is(err, ErrNotFound) {
-			t.Errorf("RepoByID(%q): err = %v, want ErrNotFound", id, err)
-		}
-		if _, err := store.Runs(ctx, RepoID(id), RunQuery{}); !errors.Is(err, ErrNotFound) {
-			t.Errorf("Runs(%q): err = %v, want ErrNotFound", id, err)
-		}
-		if _, err := store.Document(ctx, RepoID(id), RunID(id)); !errors.Is(err, ErrNotFound) {
-			t.Errorf("Document(%q): err = %v, want ErrNotFound", id, err)
-		}
-		if err := store.Forget(ctx, RepoID(id)); !errors.Is(err, ErrNotFound) {
-			t.Errorf("Forget(%q): err = %v, want ErrNotFound", id, err)
-		}
-	}
-
-	if _, err := os.Stat(outside); err != nil {
-		t.Fatalf("a file outside the store was removed: %v", err)
-	}
-}
-
-func TestStoreRejectsATraversalRunIdentifier(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.Background()
-	store := newStore(t)
-	root := repoRoot(t, "proj")
-	run := put(t, store, makeRecord(root, recordOpts{at: baseTime}, finding("fp", "trivy")))
-
-	escape := RunID("../" + repoFileName)
-	if _, err := store.Document(ctx, run.RepoID, escape); !errors.Is(err, ErrNotFound) {
-		t.Errorf("Document with a traversal run id: err = %v, want ErrNotFound", err)
-	}
-	if _, err := store.RunByID(ctx, run.RepoID, escape); !errors.Is(err, ErrNotFound) {
-		t.Errorf("RunByID with a traversal run id: err = %v, want ErrNotFound", err)
-	}
 }
 
 func TestRepoIDIsDerivedFromThePath(t *testing.T) {

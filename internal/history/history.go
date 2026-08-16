@@ -30,23 +30,16 @@
 //
 // # Storage
 //
-// [OpenJSON] returns the only implementation today: a directory of JSON files,
-// one directory per repository.
+// Scan history lives in a single SQLite database at ~/.pindrop/pindrop.db.
+// [github.com/AnimeshRy/pindrop/internal/history/sqlite.Open] returns the
+// only implementation today.
 //
-//	<dir>/
-//	└── r_<32hex>/
-//	    ├── repo.json          the repository and its runs, derived, rewritten each Put
-//	    ├── state.json         the fingerprint lifecycle index, derived, rewritable
-//	    ├── .lock              present only while a Put is in flight
-//	    └── runs/<runID>.json  one immutable [report.Document] per run
+// The database holds four tables: repos, runs, findings, and finding_states.
+// Run rows store the full [report.Document] blob; findings are also normalized
+// into rows for query speed; finding_states is the fingerprint lifecycle index.
+// Goose migrations in internal/history/sqlite/migrations version the schema.
 //
-// There is deliberately no global index. Listing repositories is one ReadDir
-// plus one small file open each, two concurrent scans of different repositories
-// share no file at all, and no cache exists that could disagree with the runs on
-// disk. repo.json and state.json are both caches of the run files and are both
-// reconstructible with [Store.Rebuild] — the run files are the only truth.
-//
-// The [Store] interface is shaped for a SQLite backend to slot in later: every
+// The [Store] interface is shaped for a Postgres backend to slot in later: every
 // method is context-carrying, takes a repository scope, and returns whole values
 // rather than cursors.
 package history
@@ -132,9 +125,9 @@ type Store interface {
 	Close() error
 }
 
-// DefaultDir returns the directory scan history lives in, ~/.pindrop/scans. It
-// creates nothing.
-func DefaultDir() (string, error) { return toolpath.ScansDir() }
+// DefaultDBPath returns the path to the scan history database, ~/.pindrop/pindrop.db.
+// It creates nothing.
+func DefaultDBPath() (string, error) { return toolpath.DBPath() }
 
 // A RepoID identifies a repository across runs: "r_" followed by 32 hex
 // characters.
