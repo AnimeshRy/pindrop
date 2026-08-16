@@ -86,6 +86,14 @@ dependencies rather than 3. On a terminal, `pindrop scan` also offers to install
 what is missing rather than only explaining it; in CI nothing prompts and the
 behavior is byte-identical to before.
 
+The same `internal/tui` package now drives **interactive setup prompts** via
+`huh` (first-run questionnaire, install confirmation, JIT install offer during
+scan) and **`pindrop update` confirmation**. All of it renders to stderr; `--yes`
+still bypasses every prompt. **`pindrop completion`** exposes Cobra's shell
+completion scripts. **`pindrop update`** checks GitHub Releases and replaces the
+running binary in-place — non-functional until a first release is published;
+checksum verification on the download is still TODO.
+
 Next: [docs/product/roadmap.md](docs/product/roadmap.md).
 
 ## Read before changing
@@ -289,8 +297,8 @@ it.** stdout carries the report and must stay pipeable into `jq`. This works onl
 because every adapter buffers its child's stdout *and* stderr and OSV runs with
 `--verbosity error` — an adapter that lets a child write to stderr would corrupt
 every frame. `--log-level debug` therefore forces plain mode, since slog also
-writes there. `internal/tui` is the only package allowed to import bubbletea or
-lipgloss ([ADR 0011](docs/decisions/0011-bubbletea-for-progress.md)).
+writes there. `internal/tui` is the only package allowed to import bubbletea,
+lipgloss, or huh ([ADR 0011](docs/decisions/0011-bubbletea-for-progress.md)).
 
 **The progress footer says "raw findings" on purpose.** It sums what each scanner
 reported, before cross-tool dedup, so it is legitimately larger than the count the

@@ -130,6 +130,19 @@ directory.`),
 	f.BoolVar(&opts.noInstall, "no-install", false,
 		"never offer to install missing scanners, even on a terminal")
 
+	cmd.RegisterFlagCompletionFunc("format", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return []string{"table", "json", "sarif", "csv", "markdown"}, cobra.ShellCompDirectiveNoFileComp
+	})
+	cmd.RegisterFlagCompletionFunc("min-severity", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return []string{"info", "low", "medium", "high", "critical"}, cobra.ShellCompDirectiveNoFileComp
+	})
+	cmd.RegisterFlagCompletionFunc("fail-on", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return []string{"info", "low", "medium", "high", "critical"}, cobra.ShellCompDirectiveNoFileComp
+	})
+	cmd.RegisterFlagCompletionFunc("progress", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return tui.ModeNames, cobra.ShellCompDirectiveNoFileComp
+	})
+
 	return cmd
 }
 

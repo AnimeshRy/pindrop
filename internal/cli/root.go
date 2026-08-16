@@ -60,7 +60,13 @@ issue keeps its identity across scans even when the surrounding code moves.`),
 		newStatusCommand(&g),
 		newHistoryCommand(&g),
 		newVersionCommand(),
+		newCompletionCommand(),
+		newUpdateCommand(),
 	)
+
+	root.RegisterFlagCompletionFunc("log-level", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return []string{"debug", "info", "warn", "error"}, cobra.ShellCompDirectiveNoFileComp
+	})
 
 	return root.ExecuteContext(ctx)
 }

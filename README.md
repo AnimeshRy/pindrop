@@ -76,11 +76,12 @@ committed inside the binary. A download that does not match is deleted and never
 made executable.
 
 - **~215 MB**, once. It prints the sizes and the hosts and asks before fetching
-  anything; `--yes` skips the prompt.
+  anything; `--yes` skips the prompt. On a terminal the confirmation is an
+  interactive form rather than a bare `[Y/n]` line.
 - **First run on a terminal** asks where to store data (`~/.pindrop` by default)
-  and which scanners to install. A custom data directory is saved in
-  `~/.config/pindrop/config.json` (or the platform config dir) and used on
-  every later run unless `PINDROP_HOME` is set.
+  and which scanners to install, using the same interactive UI. A custom data
+  directory is saved in `~/.config/pindrop/config.json` (or the platform config
+  dir) and used on every later run unless `PINDROP_HOME` is set.
 - **Idempotent.** A second run installs nothing and makes *no network requests*,
   so there is no separate offline mode.
 - **Self-contained.** Nothing is written outside `~/.pindrop`, no package manager
@@ -172,8 +173,8 @@ pindrop scan ~/code/some-repo               # any directory
 ```
 
 On a terminal you get a live row per scanner while they run, and — if any are
-missing — an offer to install them before the scan starts. In CI nothing prompts
-and nothing animates.
+missing — an offer to install them before the scan starts (same interactive
+confirm as `pindrop setup`). In CI nothing prompts and nothing animates.
 
 ```bash
 pindrop scan . --format json --out r.json   # machine-readable
@@ -185,7 +186,37 @@ pindrop scan . --verify-secrets             # prove a leaked key is live (see be
 
 pindrop setup --check                       # what is installed, and from where
 pindrop setup --force                       # reinstall at the pinned versions
+
+pindrop completion bash                     # shell completions (see below)
+pindrop update                              # check GitHub for a newer release
 ```
+
+### Shell completions
+
+Cobra generates these; output goes to **stdout** so you can redirect or `source` it:
+
+```bash
+source <(pindrop completion bash)           # bash
+pindrop completion zsh > "${fpath[1]}/_pindrop"   # zsh (then compinit)
+pindrop completion fish > ~/.config/fish/completions/pindrop.fish
+```
+
+Enum flags such as `--format`, `--min-severity`, and `--progress` complete to
+their valid values.
+
+### Updating pindrop
+
+```bash
+pindrop update                              # check GitHub, confirm, replace binary
+pindrop update --yes                        # skip confirmation
+```
+
+This queries the latest release from GitHub and atomically replaces the running
+executable. It is **non-functional until GoReleaser publishes a first release**
+— dev builds (`version=dev`) are rejected, and a hash build with no release yet
+reports already up to date or a network error. Checksum verification on the
+downloaded archive is not wired yet; treat `pindrop update` as CLI surface for
+now, not as strong an integrity guarantee as `pindrop setup`.
 
 ### History — did the fix actually land?
 

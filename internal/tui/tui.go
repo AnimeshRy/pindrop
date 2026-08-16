@@ -1,9 +1,9 @@
 // Package tui renders live progress for long-running commands.
 //
-// It is the only package that imports bubbletea or lipgloss. That confinement is
-// deliberate and load-bearing: those are the only dependencies in this module
-// beyond cobra, and keeping their imports in one leaf means the decision can be
-// reversed by deleting a directory. See
+// It is the only package that imports bubbletea, lipgloss, or huh. That
+// confinement is deliberate and load-bearing: those are the only dependencies
+// in this module beyond cobra, and keeping their imports in one leaf means the
+// decision can be reversed by deleting a directory. See
 // docs/decisions/0011-bubbletea-for-progress.md.
 //
 // # Everything renders to stderr

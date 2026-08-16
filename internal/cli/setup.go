@@ -15,6 +15,7 @@ import (
 	"github.com/AnimeshRy/pindrop/internal/scan"
 	"github.com/AnimeshRy/pindrop/internal/toolinstall"
 	"github.com/AnimeshRy/pindrop/internal/toolpath"
+	"github.com/AnimeshRy/pindrop/internal/tui"
 )
 
 // setupOptions holds the flags for `pindrop setup`.
@@ -65,6 +66,13 @@ install somewhere else entirely. It does not need to be on your PATH.`),
 		"report what is installed and exit; installs nothing")
 	f.StringVar(&opts.libc, "libc", string(toolinstall.LibcAuto),
 		"Linux C library to install for: auto, gnu, musl")
+
+	cmd.RegisterFlagCompletionFunc("libc", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return []string{"auto", "gnu", "musl"}, cobra.ShellCompDirectiveNoFileComp
+	})
+	cmd.RegisterFlagCompletionFunc("only", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return []string{"trivy", "osv-scanner", "opengrep", "trufflehog"}, cobra.ShellCompDirectiveNoFileComp
+	})
 
 	return cmd
 }
@@ -125,75 +133,51 @@ func maybeAskSetupQuestions(opts *setupOptions, manifest *toolinstall.Manifest) 
 		return nil
 	}
 
+	return askSetupQuestions(opts, manifest)
+}
+
+func askSetupQuestions(opts *setupOptions, manifest *toolinstall.Manifest) error {
 	defaultHome, err := toolpath.DefaultHome()
 	if err != nil {
 		return err
 	}
 
-	printf(os.Stdout, "\nFirst-time setup — two quick questions.\n\n")
-	printf(os.Stdout, "Store scanner binaries and scan history in %s?\n",
-		toolpath.Display(defaultHome))
-	printf(os.Stdout, "[Y/n, or enter a different directory path] ")
-
-	homeAnswer, err := readLine(os.Stdin)
+	dirChoice, err := tui.AskDataDir(toolpath.Display(defaultHome))
 	if err != nil {
 		return err
 	}
-	homeAnswer = strings.TrimSpace(homeAnswer)
-	switch strings.ToLower(homeAnswer) {
-	case "", "y", "yes":
-		// Default ~/.pindrop — nothing to persist.
-	case "n", "no":
-		printf(os.Stdout, "Directory path: ")
-		path, err := readLine(os.Stdin)
-		if err != nil {
-			return err
-		}
-		path = strings.TrimSpace(path)
-		if path == "" {
-			return errors.New("cancelled")
-		}
-		if err := saveSetupHome(path); err != nil {
-			return err
-		}
-	default:
-		if err := saveSetupHome(homeAnswer); err != nil {
+	if dirChoice.Cancelled {
+		return errors.New("cancelled")
+	}
+	if !dirChoice.UseDefault {
+		if err := saveSetupHome(dirChoice.CustomPath); err != nil {
 			return err
 		}
 	}
 
 	if len(opts.only) == 0 {
 		names := manifest.Names()
-		printf(os.Stdout, "\nInstall all %d scanners (%s)?\n",
-			len(names), strings.Join(names, ", "))
-		printf(os.Stdout, "[Y/n, or a comma-separated list] ")
+		scannerOpts := make([]tui.ScannerOption, len(names))
+		for i, name := range names {
+			tool, _ := manifest.Tool(name)
+			scannerOpts[i] = tui.ScannerOption{
+				Name:    name,
+				Version: tool.Version,
+			}
+		}
 
-		onlyAnswer, err := readLine(os.Stdin)
+		choice, err := tui.AskScannerSelection(scannerOpts)
 		if err != nil {
 			return err
 		}
-		onlyAnswer = strings.TrimSpace(onlyAnswer)
-		switch strings.ToLower(onlyAnswer) {
-		case "", "y", "yes":
-			// All scanners — opts.only stays nil.
-		case "n", "no":
+		if choice.Cancelled {
 			return errors.New("cancelled")
-		default:
-			parts := strings.Split(onlyAnswer, ",")
-			opts.only = make([]string, 0, len(parts))
-			for _, p := range parts {
-				p = strings.TrimSpace(p)
-				if p != "" {
-					opts.only = append(opts.only, p)
-				}
-			}
-			if len(opts.only) == 0 {
-				return errors.New("cancelled")
-			}
+		}
+		if !choice.InstallAll {
+			opts.only = choice.Selected
 		}
 	}
 
-	printf(os.Stdout, "\n")
 	return nil
 }
 
@@ -212,7 +196,7 @@ func saveSetupHome(path string) error {
 	if err := toolpath.SaveHomeOverride(path); err != nil {
 		return err
 	}
-	printf(os.Stdout, "Using %s for Pindrop data.\n", toolpath.Display(path))
+	printf(os.Stderr, "Using %s for Pindrop data.\n", toolpath.Display(path))
 	return nil
 }
 
@@ -462,14 +446,15 @@ func confirmInstall(in io.Reader, out io.Writer, todo []toolinstall.Selected,
 		total += sel.Asset.Size
 	}
 
-	printf(out, "pindrop will download %d scanner%s into %s (%s):\n\n",
+	summary := fmt.Sprintf("pindrop will download %d scanner%s into %s (%s):",
 		len(todo), plural(len(todo)), toolpath.Display(dir), humanBytes(total))
+
+	var details strings.Builder
 	for _, sel := range todo {
-		printf(out, "  %-13s %-9s %8s   github.com/%s\n",
+		fmt.Fprintf(&details, "  %-13s %-9s %8s   github.com/%s\n",
 			sel.Tool.Name, sel.Tool.Version, humanBytes(sel.Asset.Size), sel.Tool.Repo)
 	}
-	printf(out, "\nEach download is verified against a SHA-256 digest "+
-		"committed in this build.\n")
+	details.WriteString("\nEach download is verified against a SHA-256 digest committed in this build.")
 
 	// A non-interactive stdin must not be read: a CI job that blocks forever on a
 	// prompt nobody can answer is a worse failure than an error telling it to pass
@@ -480,20 +465,17 @@ func confirmInstall(in io.Reader, out io.Writer, todo []toolinstall.Selected,
 				"  Re-run with --yes to install without confirmation")
 	}
 
-	printf(out, "\nContinue? [Y/n] ")
+	_ = in
+	_ = out
 
-	line, err := bufio.NewReader(in).ReadString('\n')
-	if err != nil && !errors.Is(err, io.EOF) {
-		return false, fmt.Errorf("reading your answer: %w", err)
+	result, err := tui.AskInstallConfirm(summary, details.String())
+	if err != nil {
+		return false, err
 	}
-
-	switch strings.ToLower(strings.TrimSpace(line)) {
-	case "", "y", "yes":
-		printf(out, "\n")
-		return true, nil
-	default:
-		return false, nil
+	if result.Confirmed {
+		fmt.Fprintln(os.Stderr)
 	}
+	return result.Confirmed, nil
 }
 
 // printf writes to w, discarding the error.
@@ -574,12 +556,12 @@ func offerInstall(ctx context.Context, unavailable error, overridden map[string]
 		total += sel.Asset.Size
 	}
 
-	printf(os.Stderr, "\n%d of %d scanners are not installed: %s\n",
-		len(missing), len(manifest.Names()), strings.Join(missing, ", "))
-	printf(os.Stderr, "Install them now into %s (%s, checksum-verified)? [Y/n] ",
+	fmt.Fprintln(os.Stderr)
+	prompt := fmt.Sprintf("%d of %d scanners are not installed: %s\nInstall them now into %s (%s, checksum-verified)?",
+		len(missing), len(manifest.Names()), strings.Join(missing, ", "),
 		toolpath.Display(dir), humanBytes(total))
 
-	agreed, err := readYesNo(os.Stdin)
+	agreed, err := tui.AskInstallOffer(prompt)
 	if err != nil {
 		return false, err
 	}
