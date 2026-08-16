@@ -1,0 +1,38 @@
+README.md
+  s_4372cb7e9a4f71::t_6698c5e2d547f2 150-160,162
+  s_4372cb7e9a4f71::t_1d5fb37f11eb11 36-37
+  s_4372cb7e9a4f71::t_113a391df71194 321-322,325
+  s_4372cb7e9a4f71::t_681455111f0201 192-193
+  s_4372cb7e9a4f71::t_6d9b88eb3b78fc 99
+internal/cli/scan.go
+  s_4372cb7e9a4f71::t_b95ac60ccf11a5 119
+CLAUDE.md
+  s_4372cb7e9a4f71::t_32d5d3c72143c9 43-45
+  s_4372cb7e9a4f71::t_c4ba25c7c1b802 23-28
+docs
+  s_670a3779306575::t_72723f425826bc 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "9f49ac815bacb1450d130a2c5f1a982edd4c2374",
+  "prompts": {},
+  "sessions": {
+    "s_4372cb7e9a4f71": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9123b42f-e5d9-4d25-a397-be4128c97d6c",
+        "model": "composer-2.5"
+      },
+      "human_author": "AnimeshRy <ani16september@gmail.com>"
+    },
+    "s_670a3779306575": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3d992432-3e39-4b56-8208-034ecfce01c6",
+        "model": "composer-2.5"
+      },
+      "human_author": "AnimeshRy <ani16september@gmail.com>"
+    }
+  }
+}
