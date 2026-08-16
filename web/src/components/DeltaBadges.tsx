@@ -59,7 +59,9 @@ export function DeltaBadges({
   }
 
   return (
-    <span className={cn('flex flex-wrap items-center gap-x-2 gap-y-1 text-xs', className)}>
+    <span
+      className={cn('flex flex-wrap items-center gap-x-2 gap-y-1 text-xs', className)}
+    >
       {parts.map((part, index) => (
         <span key={part.key} className="flex items-center gap-2">
           {index > 0 && (

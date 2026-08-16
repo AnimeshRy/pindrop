@@ -49,8 +49,8 @@ function ReposPage() {
       <div>
         <h1 className="text-xl font-semibold">Repositories</h1>
         <p className="mt-1 text-sm" style={{ color: 'var(--muted-foreground)' }}>
-          {repos.data.length} {repos.data.length === 1 ? 'repository' : 'repositories'} with
-          recorded scans
+          {repos.data.length} {repos.data.length === 1 ? 'repository' : 'repositories'}{' '}
+          with recorded scans
         </p>
       </div>
 
@@ -81,8 +81,8 @@ function EmptyState() {
     >
       <h2 className="font-medium">No scans recorded yet</h2>
       <p className="mt-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>
-        Scan a project and Pindrop will record it here, so the next scan can tell you what
-        changed.
+        Scan a project and Pindrop will record it here, so the next scan can tell you
+        what changed.
       </p>
       <pre
         className="mt-4 overflow-x-auto rounded-md p-3 text-xs"

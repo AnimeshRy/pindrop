@@ -18,8 +18,8 @@ import (
 )
 
 type uninstallOptions struct {
-	yes           bool
-	purgeHistory  bool
+	yes          bool
+	purgeHistory bool
 }
 
 func newUninstallCommand(_ *globals) *cobra.Command {
@@ -73,49 +73,14 @@ func runUninstall(ctx context.Context, opts *uninstallOptions) error {
 		return nil
 	}
 
-	if len(toolNames) > 0 {
-		if !opts.yes {
-			if !isTerminal(os.Stdin) {
-				return errors.New(
-					"stdin is not a terminal\n  Re-run with --yes to remove without confirmation")
-			}
-			ok, err := confirmUninstall(os.Stdin, os.Stdout, dir, len(toolNames))
-			if err != nil {
-				return err
-			}
-			if !ok {
-				return errors.New("cancelled")
-			}
-		}
-		if err := removeInstalledScanners(dir, home, record, toolNames); err != nil {
-			return err
-		}
-	} else {
-		_ = os.Remove(toolinstall.RecordPath(home))
+	if err := opts.removeScanners(dir, home, record, toolNames); err != nil {
+		return err
 	}
 
-	purge := opts.purgeHistory
-	if repoCount > 0 && !purge {
-		if opts.yes {
-			printf(os.Stdout, "\nScan history (%d %s, %d %s) was left in place.\n",
-				repoCount, pluralRepo(repoCount), runCount, pluralRun(runCount))
-			printf(os.Stdout, "  Delete it with: pindrop uninstall --purge-history\n")
-		} else if isTerminal(os.Stdin) && isTerminal(os.Stdout) {
-			dbPath, err := toolpath.DBPath()
-			if err != nil {
-				return err
-			}
-			printf(os.Stdout, "\nAlso delete recorded scan history (%d %s, %d %s) at %s? [y/N] ",
-				repoCount, pluralRepo(repoCount), runCount, pluralRun(runCount), toolpath.Display(dbPath))
-			ok, err := readYesNo(os.Stdin)
-			if err != nil {
-				return err
-			}
-			purge = ok
-			printf(os.Stdout, "\n")
-		}
+	purge, err := opts.resolvePurge(ctx, repoCount, runCount)
+	if err != nil {
+		return err
 	}
-
 	if purge {
 		dbPath, err := toolpath.DBPath()
 		if err != nil {
@@ -134,6 +99,57 @@ func runUninstall(ctx context.Context, opts *uninstallOptions) error {
 	tryRemoveEmptyTree(home)
 	printUninstallBinaryNote(os.Stdout)
 	return nil
+}
+
+func (opts *uninstallOptions) removeScanners(dir, home string, record *toolinstall.Record, toolNames []string) error {
+	if len(toolNames) == 0 {
+		_ = os.Remove(toolinstall.RecordPath(home))
+		return nil
+	}
+	if !opts.yes {
+		if !isTerminal(os.Stdin) {
+			return errors.New(
+				"stdin is not a terminal\n  Re-run with --yes to remove without confirmation")
+		}
+		ok, err := confirmUninstall(os.Stdin, os.Stdout, dir, len(toolNames))
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return errors.New("cancelled")
+		}
+	}
+	return removeInstalledScanners(dir, home, record, toolNames)
+}
+
+func (opts *uninstallOptions) resolvePurge(_ context.Context, repoCount, runCount int) (bool, error) {
+	if opts.purgeHistory {
+		return true, nil
+	}
+	if repoCount == 0 {
+		return false, nil
+	}
+	if opts.yes {
+		printf(os.Stdout, "\nScan history (%d %s, %d %s) was left in place.\n",
+			repoCount, pluralRepo(repoCount), runCount, pluralRun(runCount))
+		printf(os.Stdout, "  Delete it with: pindrop uninstall --purge-history\n")
+		return false, nil
+	}
+	if !isTerminal(os.Stdin) || !isTerminal(os.Stdout) {
+		return false, nil
+	}
+	dbPath, err := toolpath.DBPath()
+	if err != nil {
+		return false, err
+	}
+	printf(os.Stdout, "\nAlso delete recorded scan history (%d %s, %d %s) at %s? [y/N] ",
+		repoCount, pluralRepo(repoCount), runCount, pluralRun(runCount), toolpath.Display(dbPath))
+	ok, err := readYesNo(os.Stdin)
+	if err != nil {
+		return false, err
+	}
+	printf(os.Stdout, "\n")
+	return ok, nil
 }
 
 func removeInstalledScanners(dir, home string, record *toolinstall.Record, names []string) error {

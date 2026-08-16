@@ -66,9 +66,6 @@ release:
   github:
     owner: AnimeshRy
     name: pindrop
-  # Draft first so you can review release notes before publishing.
-  # Remove this line once you're confident in the automation.
-  draft: true
   prerelease: auto
   name_template: "v{{.Version}}"
 

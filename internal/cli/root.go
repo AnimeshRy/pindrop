@@ -64,7 +64,7 @@ issue keeps its identity across scans even when the surrounding code moves.`),
 		newUpdateCommand(),
 	)
 
-	root.RegisterFlagCompletionFunc("log-level", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	registerFlagCompletion(root, "log-level", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 		return []string{"debug", "info", "warn", "error"}, cobra.ShellCompDirectiveNoFileComp
 	})
 

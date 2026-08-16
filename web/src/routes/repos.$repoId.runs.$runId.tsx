@@ -94,7 +94,10 @@ function RunPage() {
         </h1>
         {detail && (
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-            <code className="font-mono text-xs" style={{ color: 'var(--muted-foreground)' }}>
+            <code
+              className="font-mono text-xs"
+              style={{ color: 'var(--muted-foreground)' }}
+            >
               {detail.run.vcs?.branch ?? 'no branch'}
               {detail.run.vcs?.commit ? ` @ ${shortCommit(detail.run.vcs.commit)}` : ''}
             </code>
@@ -148,7 +151,11 @@ function Skeleton() {
       <div className="h-6 w-48 rounded" style={{ background: 'var(--muted)' }} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {Array.from({ length: 6 }, (_, i) => (
-          <div key={i} className="h-20 rounded-lg" style={{ background: 'var(--muted)' }} />
+          <div
+            key={i}
+            className="h-20 rounded-lg"
+            style={{ background: 'var(--muted)' }}
+          />
         ))}
       </div>
       <div className="h-64 rounded-lg" style={{ background: 'var(--muted)' }} />

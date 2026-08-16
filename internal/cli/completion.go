@@ -6,6 +6,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// registerFlagCompletion registers shell completion for a flag. Registration only
+// fails when the flag name is invalid, which is a programming error at init time.
+func registerFlagCompletion(cmd *cobra.Command, name string, fn func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective)) {
+	_ = cmd.RegisterFlagCompletionFunc(name, fn)
+}
+
 func newCompletionCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "completion [bash|zsh|fish|powershell]",

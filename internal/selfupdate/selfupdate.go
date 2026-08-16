@@ -18,11 +18,11 @@ import (
 )
 
 const (
-	owner          = "AnimeshRy"
-	repo           = "pindrop"
-	maxMemberSize  = 512 << 20
-	binaryName     = "pindrop"
-	binaryNameWin  = "pindrop.exe"
+	owner         = "AnimeshRy"
+	repo          = "pindrop"
+	maxMemberSize = 512 << 20
+	binaryName    = "pindrop"
+	binaryNameWin = "pindrop.exe"
 )
 
 // Release is the subset of a GitHub release we need.

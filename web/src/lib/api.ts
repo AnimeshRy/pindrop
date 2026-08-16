@@ -352,7 +352,10 @@ export async function fetchRuns(
   return request<RunsResponse>(repoPath(repoId, '/runs') + query({ ...options }))
 }
 
-export async function fetchRun(repoId: string, runId: string): Promise<RunDetailResponse> {
+export async function fetchRun(
+  repoId: string,
+  runId: string,
+): Promise<RunDetailResponse> {
   return request<RunDetailResponse>(runPath(repoId, runId))
 }
 

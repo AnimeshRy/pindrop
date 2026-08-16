@@ -47,7 +47,7 @@ func newStatusCommand(_ *globals) *cobra.Command {
 		"only count findings at or above this severity")
 	f.IntVar(&opts.limit, "limit", 10, "how many open findings to list (0 for all)")
 
-	cmd.RegisterFlagCompletionFunc("min-severity", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	registerFlagCompletion(cmd, "min-severity", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 		return []string{"info", "low", "medium", "high", "critical"}, cobra.ShellCompDirectiveNoFileComp
 	})
 

@@ -56,7 +56,10 @@ export function RunTimeline({ repoId, runs }: { repoId: string; runs: Run[] }) {
             {run.vcs?.commit ? ` @ ${shortCommit(run.vcs.commit)}` : ''}
           </span>
 
-          <span className="text-xs tabular-nums" style={{ color: 'var(--muted-foreground)' }}>
+          <span
+            className="text-xs tabular-nums"
+            style={{ color: 'var(--muted-foreground)' }}
+          >
             {run.counts.total} {run.counts.total === 1 ? 'finding' : 'findings'}
           </span>
 

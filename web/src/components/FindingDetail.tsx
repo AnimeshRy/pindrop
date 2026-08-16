@@ -16,7 +16,8 @@ export function FindingDetail({ finding }: { finding: FindingDetailRow }) {
   const scanners = finding.scanners ?? [finding.scanner]
   const lineLabel =
     finding.location.startLine && finding.location.startLine > 0
-      ? finding.location.endLine && finding.location.endLine !== finding.location.startLine
+      ? finding.location.endLine &&
+        finding.location.endLine !== finding.location.startLine
         ? `lines ${finding.location.startLine}–${finding.location.endLine}`
         : `line ${finding.location.startLine}`
       : null
@@ -43,7 +44,10 @@ export function FindingDetail({ finding }: { finding: FindingDetailRow }) {
       </div>
 
       {finding.message && (
-        <p className="leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--foreground)' }}>
+        <p
+          className="leading-relaxed whitespace-pre-wrap"
+          style={{ color: 'var(--foreground)' }}
+        >
           {finding.message}
         </p>
       )}
@@ -61,7 +65,10 @@ export function FindingDetail({ finding }: { finding: FindingDetailRow }) {
             style={{ borderColor: 'var(--border)', background: 'var(--card)' }}
           >
             {lineLabel && (
-              <span className="mr-3 select-none" style={{ color: 'var(--muted-foreground)' }}>
+              <span
+                className="mr-3 select-none"
+                style={{ color: 'var(--muted-foreground)' }}
+              >
                 {lineLabel}
               </span>
             )}
@@ -69,7 +76,8 @@ export function FindingDetail({ finding }: { finding: FindingDetailRow }) {
           </pre>
           {finding.category === 'secret' && (
             <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-              Secret values are never stored — only a redacted hint or hash from the scanner.
+              Secret values are never stored — only a redacted hint or hash from the
+              scanner.
             </p>
           )}
         </div>
@@ -151,7 +159,10 @@ export function FindingDetail({ finding }: { finding: FindingDetailRow }) {
 function DetailItem({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
-      <dt className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+      <dt
+        className="text-xs font-medium tracking-wide uppercase"
+        style={{ color: 'var(--muted-foreground)' }}
+      >
         {label}
       </dt>
       <dd className="mt-0.5">{children}</dd>

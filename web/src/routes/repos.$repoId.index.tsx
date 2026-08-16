@@ -15,7 +15,10 @@ const PAGE_SIZE = 50
 function RepoPage() {
   const { repoId } = Route.useParams()
 
-  const repo = useQuery({ queryKey: ['repo', repoId], queryFn: () => fetchRepo(repoId) })
+  const repo = useQuery({
+    queryKey: ['repo', repoId],
+    queryFn: () => fetchRepo(repoId),
+  })
   const runs = useQuery({
     queryKey: ['runs', repoId, { limit: PAGE_SIZE }],
     queryFn: () => fetchRuns(repoId, { limit: PAGE_SIZE }),
@@ -46,7 +49,11 @@ function RepoPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/" className="text-xs hover:underline" style={{ color: 'var(--muted-foreground)' }}>
+        <Link
+          to="/"
+          className="text-xs hover:underline"
+          style={{ color: 'var(--muted-foreground)' }}
+        >
           ← Repositories
         </Link>
         <h1 className="mt-1 text-xl font-semibold">{repo.data?.name}</h1>
@@ -65,8 +72,8 @@ function RepoPage() {
         </p>
         {repo.data?.missing && (
           <p className="mt-2 text-sm text-amber-700 dark:text-amber-400">
-            ⚠ This checkout is no longer on disk, so no new runs will arrive. The recorded
-            history below is still complete.
+            ⚠ This checkout is no longer on disk, so no new runs will arrive. The
+            recorded history below is still complete.
           </p>
         )}
       </div>

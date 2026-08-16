@@ -67,10 +67,10 @@ install somewhere else entirely. It does not need to be on your PATH.`),
 	f.StringVar(&opts.libc, "libc", string(toolinstall.LibcAuto),
 		"Linux C library to install for: auto, gnu, musl")
 
-	cmd.RegisterFlagCompletionFunc("libc", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	registerFlagCompletion(cmd, "libc", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 		return []string{"auto", "gnu", "musl"}, cobra.ShellCompDirectiveNoFileComp
 	})
-	cmd.RegisterFlagCompletionFunc("only", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	registerFlagCompletion(cmd, "only", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 		return []string{"trivy", "osv-scanner", "opengrep", "trufflehog"}, cobra.ShellCompDirectiveNoFileComp
 	})
 

@@ -83,6 +83,11 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # TanStack Router generates routeTree.gen.ts during the Vite build. CI
+      # must produce it before typecheck; the file is gitignored locally too.
+      - name: Build
+        run: pnpm build
+
       - name: Typecheck
         run: pnpm typecheck
 
@@ -91,9 +96,6 @@ jobs:
 
       - name: Format check
         run: pnpm format:check
-
-      - name: Build
-        run: pnpm build
 
   integration:
     name: Integration

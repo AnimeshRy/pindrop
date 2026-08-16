@@ -14,12 +14,13 @@ import (
 	"sync"
 	"time"
 
+	_ "modernc.org/sqlite"
+
 	"github.com/AnimeshRy/pindrop/internal/history"
 	"github.com/AnimeshRy/pindrop/internal/history/sqlite/sqlcgen"
 	"github.com/AnimeshRy/pindrop/internal/report"
 	"github.com/AnimeshRy/pindrop/internal/scan"
 	"github.com/AnimeshRy/pindrop/internal/toolpath"
-	_ "modernc.org/sqlite"
 )
 
 // Store is a [history.Store] backed by SQLite.
@@ -68,6 +69,7 @@ func Open(path string) (*Store, error) {
 	}, nil
 }
 
+// Close releases the database connection. It is safe to call more than once.
 func (s *Store) Close() error {
 	if s.db == nil {
 		return nil
@@ -77,6 +79,7 @@ func (s *Store) Close() error {
 	return err
 }
 
+// Path returns the absolute path to the SQLite database file.
 func (s *Store) Path() string { return s.path }
 
 func (s *Store) hold(id history.RepoID) func() {
@@ -91,6 +94,7 @@ func (s *Store) hold(id history.RepoID) func() {
 	return m.Unlock
 }
 
+// Put records one completed scan and returns the run it created.
 func (s *Store) Put(ctx context.Context, rec history.Record) (history.Run, error) {
 	if err := ctx.Err(); err != nil {
 		return history.Run{}, fmt.Errorf("recording scan history: %w", err)
@@ -116,6 +120,10 @@ func (s *Store) Put(ctx context.Context, rec history.Record) (history.Run, error
 		finished = time.Now().UTC()
 	}
 
+	return s.insertRun(ctx, id, root, rec, finished)
+}
+
+func (s *Store) insertRun(ctx context.Context, id history.RepoID, root string, rec history.Record, finished time.Time) (history.Run, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return history.Run{}, err
@@ -131,8 +139,6 @@ func (s *Store) Put(ctx context.Context, rec history.Record) (history.Run, error
 	}
 
 	history.Identify(fold, root, rec.VCS.Origin)
-
-	// Ensure the repo row exists before inserting runs that reference it.
 	if fold.Repo.FirstRunAt.IsZero() {
 		fold.Repo.FirstRunAt = finished
 	}
@@ -143,19 +149,27 @@ func (s *Store) Put(ctx context.Context, rec history.Record) (history.Run, error
 		return history.Run{}, fmt.Errorf("recording repository: %w", err)
 	}
 
+	run, docJSON, storedDoc, err := s.prepareRunRecord(fold, rec, finished)
+	if err != nil {
+		return history.Run{}, err
+	}
+	return s.commitRun(ctx, tx, q, id, fold, run, storedDoc, docJSON)
+}
+
+func (s *Store) prepareRunRecord(fold *history.Fold, rec history.Record, finished time.Time) (history.Run, string, report.Document, error) {
 	newest := history.RunID("")
 	if n := len(fold.Runs); n > 0 {
 		newest = fold.Runs[n-1].ID
 	}
 	runID, err := history.MintRunIDAfter(finished, newest)
 	if err != nil {
-		return history.Run{}, err
+		return history.Run{}, "", report.Document{}, err
 	}
 
 	doc := history.DocumentFor(rec.Document, fold.Repo, rec.VCS, runID, finished)
 	docJSON, err := history.EncodeDocumentJSON(doc)
 	if err != nil {
-		return history.Run{}, err
+		return history.Run{}, "", report.Document{}, err
 	}
 
 	run, statuses, storedDoc := history.ApplyRunRecord(fold, history.RunRecord{
@@ -169,10 +183,23 @@ func (s *Store) Put(ctx context.Context, rec history.Record) (history.Run, error
 		storedDoc.Status = statuses
 		docJSON, err = history.EncodeDocumentJSON(storedDoc)
 		if err != nil {
-			return history.Run{}, err
+			return history.Run{}, "", report.Document{}, err
 		}
 	}
+	return run, docJSON, storedDoc, nil
+}
 
+func (s *Store) commitRun(
+	ctx context.Context,
+	tx *sql.Tx,
+	q *sqlcgen.Queries,
+	id history.RepoID,
+	fold *history.Fold,
+	run history.Run,
+	storedDoc report.Document,
+	docJSON string,
+) (history.Run, error) {
+	runID := run.ID
 	if err := q.InsertRun(ctx, runToInsert(run, docJSON)); err != nil {
 		return history.Run{}, fmt.Errorf("recording run: %w", err)
 	}
@@ -286,6 +313,7 @@ func (s *Store) detectMove(ctx context.Context, id history.RepoID, root, origin 
 	return found, true
 }
 
+// Repos lists every repository with history, most recently scanned first.
 func (s *Store) Repos(ctx context.Context) ([]history.Repo, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("listing scan history: %w", err)
@@ -343,6 +371,7 @@ func countOpenFromMap(states map[string]history.FindingState) history.Counts {
 	return counts
 }
 
+// RepoByID returns one repository, or [history.ErrNotFound].
 func (s *Store) RepoByID(ctx context.Context, id history.RepoID) (history.Repo, error) {
 	if err := ctx.Err(); err != nil {
 		return history.Repo{}, fmt.Errorf("reading scan history: %w", err)
@@ -362,6 +391,7 @@ func (s *Store) RepoByID(ctx context.Context, id history.RepoID) (history.Repo, 
 	return repo, nil
 }
 
+// RepoByPath returns the repository a directory belongs to.
 func (s *Store) RepoByPath(ctx context.Context, path string) (history.Repo, error) {
 	if err := ctx.Err(); err != nil {
 		return history.Repo{}, fmt.Errorf("reading scan history: %w", err)
@@ -392,6 +422,7 @@ func (s *Store) RepoByPath(ctx context.Context, path string) (history.Repo, erro
 		toolpath.Display(root), path, history.ErrNotFound)
 }
 
+// Runs lists a repository's runs, newest first, filtered by q.
 func (s *Store) Runs(ctx context.Context, id history.RepoID, q history.RunQuery) ([]history.Run, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("reading scan history: %w", err)
@@ -454,6 +485,7 @@ func (s *Store) listRuns(ctx context.Context, id history.RepoID) ([]history.Run,
 	return runs, nil
 }
 
+// RunByID returns one run's metadata, or [history.ErrNotFound].
 func (s *Store) RunByID(ctx context.Context, id history.RepoID, run history.RunID) (history.Run, error) {
 	if err := ctx.Err(); err != nil {
 		return history.Run{}, fmt.Errorf("reading scan history: %w", err)
@@ -474,6 +506,7 @@ func (s *Store) RunByID(ctx context.Context, id history.RepoID, run history.RunI
 	return runFromRow(row)
 }
 
+// Document returns the stored report for a run, exactly as it was written.
 func (s *Store) Document(ctx context.Context, id history.RepoID, run history.RunID) (report.Document, error) {
 	if err := ctx.Err(); err != nil {
 		return report.Document{}, fmt.Errorf("reading scan history: %w", err)
@@ -497,6 +530,7 @@ func (s *Store) Document(ctx context.Context, id history.RepoID, run history.Run
 	return report.DecodeDocument(bytes.NewReader([]byte(row.Document)))
 }
 
+// Findings returns a run's findings paired with the lifecycle status each held.
 func (s *Store) Findings(ctx context.Context, id history.RepoID, run history.RunID, q history.FindingQuery) ([]scan.Delta, error) {
 	doc, err := s.Document(ctx, id, run)
 	if err != nil {
@@ -509,6 +543,7 @@ func (s *Store) Findings(ctx context.Context, id history.RepoID, run history.Run
 	return history.Page(history.FilterDeltas(deltas, q), q), nil
 }
 
+// States returns the lifecycle index for one repository.
 func (s *Store) States(ctx context.Context, id history.RepoID, q history.FindingQuery) ([]history.FindingState, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("reading scan history: %w", err)
@@ -544,6 +579,7 @@ func (s *Store) States(ctx context.Context, id history.RepoID, q history.Finding
 	return history.Page(states, q), nil
 }
 
+// DiffRuns compares two runs of one repository.
 func (s *Store) DiffRuns(ctx context.Context, id history.RepoID, req history.DiffRequest) (history.Diff, error) {
 	if err := ctx.Err(); err != nil {
 		return history.Diff{}, fmt.Errorf("reading scan history: %w", err)
@@ -614,6 +650,7 @@ func checkedBy(reporters []string, ran map[string]bool) bool {
 	return false
 }
 
+// Rebuild regenerates derived state from stored run records.
 func (s *Store) Rebuild(ctx context.Context, id history.RepoID) error {
 	if err := history.ValidateRepoID(id); err != nil {
 		return err
@@ -705,6 +742,7 @@ func (s *Store) rebuildTx(ctx context.Context, q *sqlcgen.Queries, id history.Re
 	return nil
 }
 
+// Prune deletes old runs according to p and reports how many it removed.
 func (s *Store) Prune(ctx context.Context, id history.RepoID, p history.Retention) (int, error) {
 	if err := history.ValidateRepoID(id); err != nil {
 		return 0, err
@@ -746,6 +784,7 @@ func (s *Store) Prune(ctx context.Context, id history.RepoID, p history.Retentio
 	return len(doomed), nil
 }
 
+// Forget deletes a repository's entire history.
 func (s *Store) Forget(ctx context.Context, id history.RepoID) error {
 	if err := history.ValidateRepoID(id); err != nil {
 		return err

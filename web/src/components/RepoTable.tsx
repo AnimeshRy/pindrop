@@ -83,7 +83,9 @@ export function RepoTable({
   deltas?: Record<string, DeltaCounts | undefined>
 }) {
   const navigate = useNavigate()
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'lastRunAt', desc: true }])
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: 'lastRunAt', desc: true },
+  ])
 
   const columns = useMemo(
     () => [
@@ -102,7 +104,7 @@ export function RepoTable({
             </Link>
             {info.row.original.missing && (
               <span
-                className="rounded px-1.5 py-0.5 text-xs ring-1 ring-inset ring-amber-600/30"
+                className="rounded px-1.5 py-0.5 text-xs ring-1 ring-amber-600/30 ring-inset"
                 title="This checkout is no longer on disk. Its history is still readable."
               >
                 checkout missing
@@ -179,7 +181,10 @@ export function RepoTable({
   return (
     // Wide tables scroll inside their own container so the page body never
     // scrolls horizontally.
-    <div className="overflow-x-auto rounded-lg border" style={{ borderColor: 'var(--border)' }}>
+    <div
+      className="overflow-x-auto rounded-lg border"
+      style={{ borderColor: 'var(--border)' }}
+    >
       <table className="w-full border-collapse text-left text-sm">
         <thead style={{ background: 'var(--muted)' }}>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -192,7 +197,8 @@ export function RepoTable({
                   style={{ color: 'var(--muted-foreground)' }}
                 >
                   {flexRender(header.column.columnDef.header, header.getContext())}
-                  {{ asc: ' ↑', desc: ' ↓' }[header.column.getIsSorted() as string] ?? ''}
+                  {{ asc: ' ↑', desc: ' ↓' }[header.column.getIsSorted() as string] ??
+                    ''}
                 </th>
               ))}
             </tr>

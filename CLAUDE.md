@@ -91,7 +91,7 @@ The same `internal/tui` package now drives **interactive setup prompts** via
 scan) and **`pindrop update` confirmation**. All of it renders to stderr; `--yes`
 still bypasses every prompt. **`pindrop completion`** exposes Cobra's shell
 completion scripts. **`pindrop update`** checks GitHub Releases and replaces the
-running binary in-place — non-functional until a first release is published;
+running binary in-place (see [docs/development/releases.md](docs/development/releases.md));
 checksum verification on the download is still TODO.
 
 Next: [docs/product/roadmap.md](docs/product/roadmap.md).
@@ -106,6 +106,7 @@ Next: [docs/product/roadmap.md](docs/product/roadmap.md).
 | Why things are the way they are | [docs/decisions/](docs/decisions/) |
 | Coding conventions | [docs/development/conventions.md](docs/development/conventions.md) |
 | Build and verify | [docs/development/setup.md](docs/development/setup.md) |
+| Release automation | [docs/development/releases.md](docs/development/releases.md) |
 
 ## Commands
 

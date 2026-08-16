@@ -11,12 +11,13 @@ import (
 	"testing"
 	"time"
 
+	_ "modernc.org/sqlite"
+
 	"github.com/AnimeshRy/pindrop/internal/history"
 	"github.com/AnimeshRy/pindrop/internal/history/sqlite"
 	"github.com/AnimeshRy/pindrop/internal/history/sqlite/sqlcgen"
 	"github.com/AnimeshRy/pindrop/internal/report"
 	"github.com/AnimeshRy/pindrop/internal/scan"
-	_ "modernc.org/sqlite"
 )
 
 var baseTime = time.Date(2024, 3, 1, 12, 0, 0, 0, time.UTC)
