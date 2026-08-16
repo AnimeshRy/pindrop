@@ -1,0 +1,14 @@
+docs
+  h_829f9361b81559 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "9f266d2683a636c1eece3a6a509956101129906c",
+  "prompts": {},
+  "humans": {
+    "h_829f9361b81559": {
+      "author": "AnimeshRy <ani16september@gmail.com>"
+    }
+  }
+}
