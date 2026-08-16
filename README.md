@@ -52,9 +52,36 @@ That layer is the product.
 
 ## Install
 
-There are no prebuilt binaries yet, so Pindrop is built from source. Building the
-CLI needs **Go 1.26+** and nothing else — Node and pnpm are only required if you
-also want the dashboard.
+### Homebrew (macOS / Linux)
+
+```bash
+brew tap AnimeshRy/pindrop https://github.com/AnimeshRy/pindrop
+brew install pindrop
+```
+
+Or in one step (Homebrew resolves the tap URL when it can):
+
+```bash
+brew install AnimeshRy/pindrop/pindrop
+```
+
+Then download the scanners and scan:
+
+```bash
+pindrop setup
+pindrop scan .
+```
+
+### Pre-built binaries
+
+Download the latest release for your platform from
+[GitHub Releases](https://github.com/AnimeshRy/pindrop/releases/latest),
+extract it, and run `pindrop setup` before your first scan.
+
+### From source
+
+Requires Go 1.26+. Node and pnpm are only needed if you also want the
+dashboard (`make build` rather than `make build-go`).
 
 ```bash
 git clone https://github.com/AnimeshRy/pindrop
@@ -65,8 +92,8 @@ make build-go            # → ./bin/pindrop
 ./bin/pindrop scan .
 ```
 
-That is the whole install. You do not need `make setup` — that target is for
-contributors and installs linters, formatters, and frontend dependencies.
+You do not need `make setup` — that target is for contributors and installs
+linters, formatters, and frontend dependencies.
 
 ### What `pindrop setup` does
 

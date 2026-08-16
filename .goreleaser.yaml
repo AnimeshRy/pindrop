@@ -1,0 +1,92 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+before:
+  hooks:
+    # Ensure go.mod is tidy — goreleaser checks this by default.
+    - go mod tidy
+    # Build the React frontend into web/dist/ before go build embeds it.
+    # pnpm must be available in the release environment (installed in the
+    # GitHub Actions workflow).
+    - pnpm --dir web install --frozen-lockfile
+    - pnpm --dir web build
+
+builds:
+  - main: ./cmd/pindrop
+    binary: pindrop
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      # Windows is included for completeness. Pindrop's scanner provisioning
+      # does not support Windows yet (manifest.json has no windows assets),
+      # but the core scan command works if scanners are on PATH.
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/AnimeshRy/pindrop/internal/buildinfo.version={{.Version}}
+
+archives:
+  - format: tar.gz
+    # Use consistent naming that the self-update command can match.
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    # Include the license and notice in every archive.
+    files:
+      - LICENSE
+      - NOTICE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore:"
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: AnimeshRy
+    name: pindrop
+  # Draft first so you can review release notes before publishing.
+  # Remove this line once you're confident in the automation.
+  draft: true
+  prerelease: auto
+  name_template: "v{{.Version}}"
+
+brews:
+  - repository:
+      owner: AnimeshRy
+      name: pindrop
+      # Same repo — formula is committed into Formula/ directory.
+      # Uses the default GITHUB_TOKEN since it's pushing to this repo.
+    directory: Formula
+    # Only publish to the tap for non-draft, non-prerelease versions.
+    skip_upload: auto
+    homepage: "https://github.com/AnimeshRy/pindrop"
+    description: "Find, prioritize, and track security issues in your code"
+    license: "Apache-2.0"
+    install: |
+      bin.install "pindrop"
+    test: |
+      system "#{bin}/pindrop", "version"
+    # The setup command downloads scanner binaries separately — Homebrew
+    # does not need to know about them.

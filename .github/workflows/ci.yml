@@ -14,6 +14,7 @@ permissions:
   contents: read
 
 env:
+  # Keep in step with .github/workflows/release.yml
   GO_VERSION: "1.26.5"
   NODE_VERSION: "22"
   GOLANGCI_LINT_VERSION: "v2.12.2"
