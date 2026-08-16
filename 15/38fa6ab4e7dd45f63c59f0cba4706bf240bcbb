@@ -1,0 +1,60 @@
+internal/cli/update.go
+  s_0ce074af51f66b::t_efb4965de98431 1-83
+internal/tui/confirm.go
+  s_0ce074af51f66b::t_812bd7f876ded9 1-30
+internal/tui/setup.go
+  s_0ce074af51f66b::t_e7f6a37fae5d8d 1-157
+internal/cli/status.go
+  s_0ce074af51f66b::t_4dc9a3ac0578e9 49-53
+internal/cli/setup.go
+  s_0ce074af51f66b::t_5cf78b221b9003 199
+  s_0ce074af51f66b::t_02235a654ca402 70-76
+  s_0ce074af51f66b::t_09e4b30a5aebbe 145,149-153,160-167,169,173,175-177
+  s_0ce074af51f66b::t_d966d6ebb34bec 18
+  s_0ce074af51f66b::t_c08e12a54af399 560-561,564
+  s_0ce074af51f66b::t_fd2023d65dd4bd 136-139
+  s_0ce074af51f66b::t_a564b71b69e43c 559
+  s_0ce074af51f66b::t_43e946fd4c0460 449,451-452,454,457,468-469,471-473,475-476,478
+README.md
+  s_0ce074af51f66b::t_9d780f5b92c449 79-80,82-84
+  s_0ce074af51f66b::t_223045cf8cfc34 176-177
+  s_0ce074af51f66b::t_919ced0748f044 189-201,204-219
+  s_0ce074af51f66b::t_111d304f610344 220
+internal/selfupdate/selfupdate_test.go
+  s_0ce074af51f66b::t_cddd9548431bdd 1-22
+internal/cli/scan.go
+  s_0ce074af51f66b::t_48d5ff9aff341c 133-145
+CLAUDE.md
+  s_0ce074af51f66b::t_5af1c6c8b52b73 300-301
+  s_0ce074af51f66b::t_b761e037f62334 89-96
+go.mod
+  s_0ce074af51f66b::t_9cb95853bec1a6 17,19-20,23-24,35
+  s_0ce074af51f66b::t_d500d5c83eb372 9
+internal/tui/tui.go
+  s_0ce074af51f66b::t_d6beb72dfdaaf6 3-6
+internal/cli/root.go
+  s_0ce074af51f66b::t_e757303af6f78f 63-64,67-69
+  s_0ce074af51f66b::t_260f6bcab41e0b 70
+internal/cli/completion.go
+  s_0ce074af51f66b::t_99354cb433565f 1-61
+internal/selfupdate/selfupdate.go
+  s_0ce074af51f66b::t_134291dcce0e14 1-322
+go.sum
+  s_0ce074af51f66b::t_6b4eb6b98d75aa 1-4,7-12,17-18,23-32,35-38,40-41,66-67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "1538fa6ab4e7dd45f63c59f0cba4706bf240bcbb",
+  "prompts": {},
+  "sessions": {
+    "s_0ce074af51f66b": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "21e263e7-b2ce-48f7-8404-9dc7b841eb83",
+        "model": "composer-2.5"
+      },
+      "human_author": "AnimeshRy <ani16september@gmail.com>"
+    }
+  }
+}
