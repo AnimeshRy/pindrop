@@ -1,0 +1,95 @@
+internal/cli/history_record.go
+  s_4372cb7e9a4f71::t_02503a431a5264 193,198,200
+  s_4372cb7e9a4f71::t_b02a30c336ea7f 16
+  s_4372cb7e9a4f71::t_8aaa0ae2fc652d 60,65
+internal/history/sqlite/migrate.go
+  s_4372cb7e9a4f71::t_db70f8307858cf 1-6,10-16,19,28-33
+  s_4372cb7e9a4f71::t_f2abe4081b938d 9,17-18,20-21,23-27
+  s_4372cb7e9a4f71::t_15bd7098c3ce8f 7-8
+  s_4372cb7e9a4f71::t_6fb7f53efd07f0 22
+internal/history/fold.go
+  s_4372cb7e9a4f71::t_4fb61c0a26442e 291-292,305-306
+  s_4372cb7e9a4f71::t_b2245beee952bd 293-302,307-316,319,326-335
+  s_4372cb7e9a4f71::t_af361560f6bda1 1-150,153,158-290,303-304,317-318,320-325,336-388,409,414,487
+  s_45439f33eb60d1::t_edcf82be31cdaa 151-152,154-157
+  s_4372cb7e9a4f71::t_b51595b5080e72 389-408,410-413,415-486,488-490
+internal/history/sqlite/store_test.go
+  s_45439f33eb60d1::t_41eb319a3e91e9 184-266,271-283
+  s_45439f33eb60d1::t_792dc349a7a30f 267-270
+  s_4372cb7e9a4f71::t_407ecce56a0e4b 1-18,20-183,284-422,448-457
+  s_4372cb7e9a4f71::t_6acc0a92952441 423-447
+  s_4372cb7e9a4f71::t_13617d8f32cce4 19
+internal/history/sqlite/sqlc.yaml
+  s_4372cb7e9a4f71::t_a5e723003dd920 1-12
+internal/cli/uninstall.go
+  s_4372cb7e9a4f71::t_4df9f5c72fb8ef 104,109
+  s_4372cb7e9a4f71::t_2d7e2641ee0fb3 120,124
+  s_4372cb7e9a4f71::t_666caf27f402aa 15
+  s_4372cb7e9a4f71::t_c4931eede18970 158,162,164-166,181-187
+  s_4372cb7e9a4f71::t_53b2166488191e 188-189
+internal/history/history.go
+  s_4372cb7e9a4f71::t_f3c19551a1ec68 33-35,37-40,42
+  s_4372cb7e9a4f71::t_a349f3336b8029 128-130
+internal/toolpath/home.go
+  s_4372cb7e9a4f71::t_b59372b27d8827 85-87,92,95-97,101-102,104
+  s_4372cb7e9a4f71::t_ef64f9071cb5b0 43-46
+internal/history/identity.go
+  s_4372cb7e9a4f71::t_937ef40510e932 1-84
+internal/history/sqlite/store.go
+  s_4372cb7e9a4f71::t_54c50c042f8d4a 1-134,146,156-622,625,627-631,637,639-660,675-704,706-730,733-734,745-761
+  s_4372cb7e9a4f71::t_29abb2a03a6e0d 623-624,626
+  s_45439f33eb60d1::t_58743a258be65a 632-636,638
+  s_45439f33eb60d1::t_3922ff6bd0e997 661-674
+  s_45439f33eb60d1::t_01eeb2fc56558d 705
+  s_45439f33eb60d1::t_feb0eab54e09b5 731-732,735-744
+  s_4372cb7e9a4f71::t_6b0a6822fc769a 135-145,147-155
+internal/history/sqlite/convert.go
+  s_4372cb7e9a4f71::t_086a475443a9ea 213
+  s_4372cb7e9a4f71::t_662386f47cf861 1-184,192-207,212,214-226
+  s_4372cb7e9a4f71::t_d13a94cf4ce565 185-191,208-211
+internal/history/sqlite/sqlcgen/db.go
+  s_4372cb7e9a4f71::t_775c4d88e6e29e 1-31
+internal/history/sqlite/sqlcgen/models.go
+  s_4372cb7e9a4f71::t_775c4d88e6e29e 1-81
+internal/history/sqlite/sqlcgen/query.sql.go
+  s_4372cb7e9a4f71::t_adfd6cf0c436ce 511-546
+  s_4372cb7e9a4f71::t_775c4d88e6e29e 1-510,547-644
+Makefile
+  s_4372cb7e9a4f71::t_de3ecf9e8391cf 249-252
+internal/history/sqlite/query.sql
+  s_4372cb7e9a4f71::t_cdca4ee7651cbc 84
+  s_4372cb7e9a4f71::t_b18d3e83a9da63 52,115-124
+  s_4372cb7e9a4f71::t_98de4f1ee5993a 125-126
+  s_4372cb7e9a4f71::t_57a49f132d0a4c 74
+  s_4372cb7e9a4f71::t_a7c07146242318 49-51
+  s_4372cb7e9a4f71::t_7921e3307c90ee 53-55,71-73
+  s_4372cb7e9a4f71::t_b7c8880521bcc8 75-77,81-83
+  s_4372cb7e9a4f71::t_8dde280c538abd 85-87,112-114
+internal/history/sqlite/migrations/00001_init.sql
+  s_4372cb7e9a4f71::t_caa89550e334e1 1-60,62-91
+  s_4372cb7e9a4f71::t_c7f2958198e3fb 61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "6dcd96ecc320c0ca46aaae851c8a8bae4d31d6b0",
+  "prompts": {},
+  "sessions": {
+    "s_4372cb7e9a4f71": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9123b42f-e5d9-4d25-a397-be4128c97d6c",
+        "model": "composer-2.5"
+      },
+      "human_author": "AnimeshRy <ani16september@gmail.com>"
+    },
+    "s_45439f33eb60d1": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "00c20641-cacf-4ca0-8bc0-eb2034bfbbaf",
+        "model": "composer-2.5"
+      },
+      "human_author": "AnimeshRy <ani16september@gmail.com>"
+    }
+  }
+}
