@@ -33,8 +33,8 @@ Four scanners reported 25 raw findings; you read 19, because two tools agreeing
 on one problem is one issue. The live rows go to stderr, so the table on stdout
 still pipes cleanly into `jq`.
 
-> **Status: early.** Four scanners, no persistence, no accounts. Cross-scan
-> diffing and triage are next.
+> **Status: early.** Four scanners, local scan history in SQLite, no accounts.
+> Triage (`pindrop ignore`) and `pindrop scan --diff` are next.
 
 ## Why
 
@@ -96,7 +96,7 @@ directory you choose.
 ```bash
 ./bin/pindrop uninstall              # remove scanners Pindrop installed; keeps scan history
 ./bin/pindrop uninstall --yes        # no confirmation for scanner removal
-./bin/pindrop uninstall --purge-history   # also delete ~/.pindrop/scans
+./bin/pindrop uninstall --purge-history   # also delete ~/.pindrop/pindrop.db
 ```
 
 The `pindrop` binary itself is not removed — the command prints its path so you
@@ -147,8 +147,19 @@ Additionally requires **Node 22.13+** and **pnpm 11**:
 
 ```bash
 make setup && make build     # installs frontend deps, then builds everything
+./bin/pindrop scan .
+./bin/pindrop serve          # http://127.0.0.1:7777 — browse recorded scan history
+```
+
+Use `make build`, not `make build-go`, when the dashboard has changed — the UI
+is embedded from `web/dist/`, and a stale build produces blank repo pages even
+when the API has data.
+
+To serve a single JSON report file with no history instead:
+
+```bash
 ./bin/pindrop scan . --format json --out .pindrop/report.json
-./bin/pindrop serve          # http://127.0.0.1:7777
+./bin/pindrop serve --results .pindrop/report.json
 ```
 
 A CLI-only build still runs `serve`, but it warns and serves the API alone.
@@ -178,8 +189,8 @@ pindrop setup --force                       # reinstall at the pinned versions
 
 ### History — did the fix actually land?
 
-Every scan is recorded under `~/.pindrop/scans/`, so the next one can tell you
-what changed rather than making you diff two JSON files by hand.
+Every scan is recorded in `~/.pindrop/pindrop.db` (SQLite), so the next one can
+tell you what changed rather than making you diff two JSON files by hand.
 
 ```bash
 pindrop scan .                              # recorded automatically
@@ -307,9 +318,11 @@ any triage decision attached to it.
 
 ```bash
 make setup     # linters, formatters, frontend deps, scanners into ./bin
-make build     # frontend + binary
+make build     # frontend + binary (run this when web/ changed)
+make build-go  # Go binary only, reusing whatever is in web/dist
 make check     # lint + test
 make dev       # frontend with HMR
+make sqlc      # regenerate history store queries after editing SQL
 make manifest  # regenerate the pinned scanner digests after a version bump
 make help      # everything else
 ```

@@ -20,11 +20,12 @@ Full context: [docs/product/vision.md](docs/product/vision.md).
 
 ## Current state — Phase 1 in progress
 
-`pindrop scan` now **persists every run** to `~/.pindrop/scans/` and diffs it
-against the previous one, which is the first thing here a shell script cannot do.
-`internal/history` owns the store behind a `Store` interface shaped so the JSON
-backend can be swapped for SQLite without touching callers (context on every
-method, query structs with keyset pagination, `ErrNotFound` as a package
+`pindrop scan` now **persists every run** to `~/.pindrop/pindrop.db` (SQLite) and
+diffs it against the previous one, which is the first thing here a shell script
+cannot do. `internal/history` owns the domain and `Store` interface;
+`internal/history/sqlite` is the only backend today (`modernc.org/sqlite`, sqlc,
+goose). The interface is shaped for a later Postgres implementation (context on
+every method, query structs with keyset pagination, `ErrNotFound` as a package
 sentinel rather than `os.ErrNotExist`, no paths or `io.Reader` on the interface).
 Repo identity is the **canonical path of the git work-tree root**, never the git
 remote: two live checkouts of one repository have genuinely different findings,
@@ -39,9 +40,9 @@ matters.
 
 
 `pindrop scan` (Trivy, OSV-Scanner, Opengrep, and TruffleHog) and `pindrop serve`
-(embedded React dashboard).
-**Nothing is persisted yet** — fingerprints are computed and displayed but not
-compared across runs. Cross-scan diffing and triage are Phase 1.
+(embedded React dashboard over recorded scan history).
+Triage (`pindrop ignore`) and `pindrop scan --diff` are still Phase 1 remainder.
+See [docs/architecture/scan-history.md](docs/architecture/scan-history.md).
 
 Cross-tool identity and dedup (`scan.Dedup`, `canonical.go`,
 [ADR 0006](docs/decisions/0006-canonical-identity-before-dedup.md)) landed early,

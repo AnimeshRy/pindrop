@@ -116,7 +116,7 @@ directory.`),
 	f.StringVar(&opts.cacheDir, "cache-dir", "",
 		"directory for scanner caches, such as the vulnerability database")
 	f.BoolVar(&opts.noHistory, "no-history", false,
-		"do not record this scan in ~/.pindrop/scans")
+		"do not record this scan in ~/.pindrop/pindrop.db")
 	f.BoolVar(&opts.diff, "diff", false,
 		"show only what changed since the previous scan of this repository")
 	f.StringSliceVar(&opts.exclude, "exclude", nil,
