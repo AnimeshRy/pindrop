@@ -1,0 +1,122 @@
+.gitignore
+  s_35ae7539263a68::t_7d6ac0caf16ef0 32
+  s_35ae7539263a68::t_b9a59107c085b2 24-31,33
+server/internal/api/server_test.go
+  s_35ae7539263a68::t_52988f721c317c 1-22
+app/src/routes/index.tsx
+  s_35ae7539263a68::t_09d29e58223377 1-13
+server/internal/authmw/middleware.go
+  s_35ae7539263a68::t_607ae6efeb7874 1-129
+go.work
+  s_35ae7539263a68::t_def1bdc8a468b7 1-6
+server/internal/config/config_test.go
+  s_35ae7539263a68::t_004804c934e3a7 1-37,42-46,48-49
+  s_35ae7539263a68::t_cb235b8faefa8f 38-41,47
+Makefile
+  s_35ae7539263a68::t_de3bf480292ab5 69-70
+  s_35ae7539263a68::t_8b3e65f5f1a859 222-230,232-233
+  s_35ae7539263a68::t_d9ef64d4ca01ad 231
+app/tsconfig.json
+  s_35ae7539263a68::t_c276702a6e9900 1-28
+app/vite.config.ts
+  s_35ae7539263a68::t_b7510fbbad5ce2 1-36
+app/.prettierrc.json
+  s_35ae7539263a68::t_a8bd7f03f2ab6f 1-7
+app/src/index.css
+  s_35ae7539263a68::t_a0167e3224e72d 1-32
+server/internal/api/server.go
+  s_35ae7539263a68::t_8767008ef5ec66 1-84
+app/package.json
+  s_35ae7539263a68::t_0a2a8eace110e3 1-48
+app/.prettierignore
+  s_35ae7539263a68::t_cb2ce095a403c5 1-3
+app/src/routes/__root.tsx
+  s_35ae7539263a68::t_0faaec1e3e7a2f 1-56
+server/go.mod
+  s_35ae7539263a68::t_3efc2a5b406c1c 9,11
+  s_35ae7539263a68::t_6b498fb67fa5dc 5-6
+  s_35ae7539263a68::t_0f98d72253c87a 1-4,7-8,10,12,14,17
+  s_35ae7539263a68::t_0efde1be72674f 13
+  s_35ae7539263a68::t_de9d010c87b4ab 15-16
+go.work.sum
+  s_35ae7539263a68::t_3ed240f41513bd 1-63
+  s_35ae7539263a68::t_a42c402cf4491d 64-66
+app/src/main.tsx
+  s_35ae7539263a68::t_73da2954a23bf6 1-50
+app/src/routes/login.tsx
+  s_35ae7539263a68::t_d1875c59eb2235 1-120
+app/index.html
+  s_35ae7539263a68::t_d997e65cbfad09 1-13
+app/src/routes/dashboard.tsx
+  s_35ae7539263a68::t_68d3868fd92737 1-120
+app/eslint.config.js
+  s_35ae7539263a68::t_4c76cdd4fe70b7 33-41
+  s_35ae7539263a68::t_1833bc7052eb2b 1-32,42
+app/src/lib/auth.tsx
+  s_35ae7539263a68::t_626c3bfa0a6917 1-103
+app/.env.example
+  s_35ae7539263a68::t_0c70efc1eae430 3-4,6
+  s_35ae7539263a68::t_61035046507de3 1-2,5
+server/README.md
+  s_35ae7539263a68::t_9029a60c1933c0 26-33,47-50
+  s_35ae7539263a68::t_ba22aeb068c7df 1-25,37,44,46,54-66,69
+  s_35ae7539263a68::t_c7f2b655f1b024 34-36,38-43,45,51-53
+  s_35ae7539263a68::t_624b17106ccc29 67-68
+server/.env.example
+  s_35ae7539263a68::t_51c696bd350b03 1-2
+  s_35ae7539263a68::t_e3e0cbe168da0e 3-9
+app/README.md
+  s_35ae7539263a68::t_134a98d8046936 1-30,33-37,39-59
+  s_35ae7539263a68::t_2bdbf38e646d89 31-32
+  s_35ae7539263a68::t_8f288eb8c05353 38
+app/.npmrc
+  s_35ae7539263a68::t_94df87ef633014 1-2
+server/internal/config/config.go
+  s_35ae7539263a68::t_8628f3ddb9ba17 11
+  s_35ae7539263a68::t_2e2546cb1e291d 32-33,35-40,44-45
+  s_35ae7539263a68::t_af15e3a4779312 1-10,12-31,34,46-59
+  s_35ae7539263a68::t_d2629c713c68b8 41-43
+app/src/lib/utils.ts
+  s_35ae7539263a68::t_a704eb10f4e4b8 1-7
+server/cmd/server/main.go
+  s_35ae7539263a68::t_da249cc4a31b33 19,30-32,35,41,44
+  s_35ae7539263a68::t_fb535dee806a04 1-18,20-29,33-34,36-40,42-43,45-69
+server/internal/authmw/middleware_test.go
+  s_35ae7539263a68::t_da9a3c3257b41c 89,97-98
+  s_35ae7539263a68::t_125d48a2e65eef 1-5,7,9-37,40-70,72-74,76-82,90-96,99-110,112-113,115-116,118-126
+  s_35ae7539263a68::t_c6810042e18c79 71
+  s_35ae7539263a68::t_c5779b02a650ce 83-88,111,114
+  s_35ae7539263a68::t_92ec1e1c827da6 38-39
+  s_35ae7539263a68::t_41fc4e54a3232b 117
+  s_35ae7539263a68::t_1c4e8f22ffcf49 75
+  s_35ae7539263a68::t_715389ee9524e6 6
+  s_35ae7539263a68::t_aeabacd4f04f8c 8
+app/src/lib/supabase.ts
+  s_35ae7539263a68::t_25e9cb86088464 3-6,8-10,14-19
+  s_35ae7539263a68::t_0d4b6c397993c3 1-2,7,11-13,20-35
+app/pnpm-lock.yaml
+  s_35ae7539263a68::t_e38530fec9c2f2 1-2432
+server/go.sum
+  s_35ae7539263a68::t_d4772da2b44f07 1-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "34164887184f0568b4a9dc2b6bd7cf7bba7f959d",
+  "prompts": {},
+  "humans": {
+    "h_829f9361b81559": {
+      "author": "AnimeshRy <ani16september@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_35ae7539263a68": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e5f574bc-0435-48a8-ac35-b7e2c63c8bd7",
+        "model": "composer-2.5"
+      },
+      "human_author": "AnimeshRy <ani16september@gmail.com>"
+    }
+  }
+}
