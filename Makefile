@@ -66,7 +66,8 @@ OSV_SCANNER   := $(or $(call mise_tool,osv-scanner),$(BIN)/osv-scanner)
 OPENGREP      := $(or $(call mise_tool,opengrep),$(BIN)/opengrep)
 TRUFFLEHOG    := $(or $(call mise_tool,trufflehog),$(BIN)/trufflehog)
 
-PNPM := pnpm --dir web
+PNPM     := pnpm --dir web
+APP_PNPM := pnpm --dir app
 
 ##@ General
 
@@ -217,6 +218,18 @@ web: ## Build the frontend into web/dist
 .PHONY: dev
 dev: ## Run the frontend dev server against a locally running API
 	$(PNPM) dev
+
+.PHONY: app-dev
+app-dev: ## Run the product app dev server (port 5174)
+	$(APP_PNPM) dev
+
+.PHONY: server-test
+server-test: ## Run product API tests
+	cd server && $(GO) test ./...
+
+.PHONY: server-dev
+server-dev: ## Run the product API (reads server/.env or env vars)
+	cd server && $(GO) run ./cmd/server
 
 ##@ Quality
 
