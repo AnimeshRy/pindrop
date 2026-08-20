@@ -1,0 +1,90 @@
+app/src/lib/theme-context.ts
+  s_424684c504e30a::t_299816eb6cf646 1-19
+app/src/components/home/home-header.tsx
+  s_424684c504e30a::t_12a1a363eb1916 1-22,27-28,33-48
+  s_424684c504e30a::t_d802acb81b3781 23-26,29-32
+app/src/components/home/home-page.tsx
+  s_424684c504e30a::t_34cddeaa3a2c93 1-28
+app/src/main.tsx
+  s_424684c504e30a::t_e2d292fd99d067 6
+  s_424684c504e30a::t_78fe4351cb3b75 47-51
+app/src/routes/login.tsx
+  s_424684c504e30a::t_181ec1ed6d1a0a 1-2,5-6,38-51,53,55-62,64-88
+app/src/components/home/home-features.tsx
+  s_424684c504e30a::t_9201abff9ca701 1-26,32-33,40-51,56-59,63-69
+  s_424684c504e30a::t_d802acb81b3781 27-31,34-39,52-55,60-62
+app/src/components/ui/button.tsx
+  s_424684c504e30a::t_fb7cd7c604de9a 1-13,15-36,43-68
+  s_424684c504e30a::t_33efa9b48d9dc1 14
+  s_424684c504e30a::t_d802acb81b3781 37-42
+app/src/components/home/home-workflow.tsx
+  s_424684c504e30a::t_a577803bff6541 1-4,7-10,13-16,19-28,32-36,42-43,47-53
+  s_424684c504e30a::t_d802acb81b3781 5-6,11-12,17-18,29-31,37-41,44-46
+app/src/routes/dashboard.tsx
+  s_424684c504e30a::t_d802acb81b3781 95-98
+  s_424684c504e30a::t_440d03de906462 5
+  s_424684c504e30a::t_77eacaf4f2ccb2 51-73,76-78,80-82,84-94,99-102,104-108,111,113-122
+app/src/components/app-shell.tsx
+  s_424684c504e30a::t_c09e8f7a59ef01 1-22,24-26,28-34
+  s_424684c504e30a::t_166c3f2574c97f 23,27
+app/index.html
+  s_424684c504e30a::t_219cd39f4423a8 8-12,16-25
+  s_424684c504e30a::t_d802acb81b3781 13-15
+app/src/components/theme-toggle.tsx
+  s_424684c504e30a::t_d802acb81b3781 39-42
+  s_424684c504e30a::t_e8f0c8159cac6a 1-3,6-38,43-52
+  s_424684c504e30a::t_d202ba5abb7f51 5
+  s_424684c504e30a::t_9adfaed3e98055 4
+app/src/components/home/home-cta.tsx
+  s_424684c504e30a::t_85fef5e2f6e4f3 1-20,24-36
+  s_424684c504e30a::t_d802acb81b3781 21-23
+app/src/lib/theme.ts
+  s_424684c504e30a::t_65eafc4900940d 1-30
+app/src/components/pindrop-logo.tsx
+  s_424684c504e30a::t_a1401baff77456 1-26,31-36,40
+  s_424684c504e30a::t_d802acb81b3781 27-30,37-39
+app/README.md
+  s_424684c504e30a::t_d802acb81b3781 46-51
+app/src/index.css
+  s_424684c504e30a::t_1165cb218d7468 4-13,15-42,45-55,67-71
+app/src/components/home/home-footer.tsx
+  s_424684c504e30a::t_6e5bfe1b69893d 1-11,16-23,28-29,34-44
+  s_424684c504e30a::t_d802acb81b3781 12-15,24-27,30-33
+app/src/routes/__root.tsx
+  s_424684c504e30a::t_267866d1163aa9 33
+  s_424684c504e30a::t_9d6c9c56c2e508 1,4,14
+  s_424684c504e30a::t_d802acb81b3781 24-27
+app/src/routes/index.tsx
+  s_424684c504e30a::t_0b0d99f796ea15 1-3,6,8-13
+app/src/lib/theme-provider.tsx
+  s_424684c504e30a::t_18f8bb1c4cd33f 1,3
+  s_424684c504e30a::t_d802acb81b3781 22-27
+  s_424684c504e30a::t_e492d89c2d795d 2,4-21,28-64
+app/src/components/home/home-scan-preview.tsx
+  s_424684c504e30a::t_18b918814063ec 1-6,14-49
+  s_424684c504e30a::t_d802acb81b3781 7-13
+app/src/components/home/home-hero.tsx
+  s_424684c504e30a::t_9ecd53cb0b79b8 1-11,13-19,23-40,42-51,55-57,61-63,67-72
+  s_424684c504e30a::t_d802acb81b3781 12,20-22,41,52-54,58-60,64-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "fa2ceb55d1998ec607cabaa88c9e091bb82b30b4",
+  "prompts": {},
+  "humans": {
+    "h_829f9361b81559": {
+      "author": "AnimeshRy <ani16september@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_424684c504e30a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0bb184b2-f563-4af5-9da4-c81cedd27149",
+        "model": "composer-2.5"
+      },
+      "human_author": "AnimeshRy <ani16september@gmail.com>"
+    }
+  }
+}
