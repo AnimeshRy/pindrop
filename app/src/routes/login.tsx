@@ -1,7 +1,9 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
-import { Github } from 'lucide-react'
+import { createFileRoute, Link, redirect } from '@tanstack/react-router'
+import { ArrowLeft, Github } from 'lucide-react'
 import { useState } from 'react'
 
+import { PindropLogo } from '@/components/pindrop-logo'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/login')({
@@ -33,39 +35,57 @@ function LoginPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[60vh] max-w-md flex-col justify-center">
-      <div
-        className="rounded-xl border p-8 shadow-sm"
-        style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}
-      >
-        <h1 className="text-2xl font-semibold tracking-tight">Sign in to Pindrop</h1>
-        <p className="mt-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>
-          Connect your account to view your security dashboard.
-        </p>
-
-        <div className="mt-8 flex flex-col gap-3">
-          <OAuthButton
-            label="Continue with GitHub"
-            icon={<Github className="size-4" />}
-            pending={pending === 'github'}
-            disabled={pending !== null}
-            onClick={() => void handleSignIn('github')}
-          />
-          <OAuthButton
-            label="Continue with Google"
-            icon={<GoogleIcon />}
-            pending={pending === 'google'}
-            disabled={pending !== null}
-            onClick={() => void handleSignIn('google')}
-          />
+    <div className="min-h-full">
+      <header className="border-b" style={{ borderColor: 'var(--border)' }}>
+        <div className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-3 sm:px-6">
+          <PindropLogo />
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+          >
+            <ArrowLeft className="size-4" aria-hidden />
+            Back to home
+          </Link>
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
         </div>
+      </header>
 
-        {error ? (
-          <p className="mt-4 text-sm text-red-600 dark:text-red-400" role="alert">
-            {error}
+      <main className="mx-auto flex min-h-[calc(100vh-57px)] max-w-md flex-col justify-center px-4 py-10 sm:px-6">
+        <div
+          className="rounded-xl border p-8"
+          style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}
+        >
+          <h1 className="text-2xl font-semibold tracking-tight">Sign in to Pindrop</h1>
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+            Connect your account to view your security dashboard.
           </p>
-        ) : null}
-      </div>
+
+          <div className="mt-8 flex flex-col gap-3">
+            <OAuthButton
+              label="Continue with GitHub"
+              icon={<Github className="size-4" />}
+              pending={pending === 'github'}
+              disabled={pending !== null}
+              onClick={() => void handleSignIn('github')}
+            />
+            <OAuthButton
+              label="Continue with Google"
+              icon={<GoogleIcon />}
+              pending={pending === 'google'}
+              disabled={pending !== null}
+              onClick={() => void handleSignIn('google')}
+            />
+          </div>
+
+          {error ? (
+            <p className="mt-4 text-sm text-[var(--danger)]" role="alert">
+              {error}
+            </p>
+          ) : null}
+        </div>
+      </main>
     </div>
   )
 }

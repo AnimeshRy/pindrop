@@ -43,12 +43,12 @@ proxied to `http://127.0.0.1:8080`.
 
 ## Scripts
 
-| Command | Description |
-|---|---|
-| `pnpm dev` | Start Vite dev server on port 5174 |
-| `pnpm build` | Production build to `dist/` |
-| `pnpm typecheck` | TypeScript check |
-| `pnpm lint` | ESLint |
+| Command          | Description                        |
+| ---------------- | ---------------------------------- |
+| `pnpm dev`       | Start Vite dev server on port 5174 |
+| `pnpm build`     | Production build to `dist/`        |
+| `pnpm typecheck` | TypeScript check                   |
+| `pnpm lint`      | ESLint                             |
 
 ## Deployment
 

@@ -1,13 +1,13 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
+
+import { HomePage } from '@/components/home/home-page'
 
 export const Route = createFileRoute('/')({
-  beforeLoad: ({ context }) => {
-    if (context.auth.loading) {
-      return
-    }
-    if (context.auth.user) {
-      throw redirect({ to: '/dashboard' })
-    }
-    throw redirect({ to: '/login' })
-  },
+  component: IndexPage,
 })
+
+function IndexPage() {
+  const { auth } = Route.useRouteContext()
+
+  return <HomePage signedIn={Boolean(auth.user)} />
+}
