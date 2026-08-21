@@ -35,6 +35,7 @@ builds:
 archives:
   - format: tar.gz
     # Use consistent naming that the self-update command can match.
+    # scripts/install.sh must use the same template — keep them in sync.
     name_template: >-
       {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
     format_overrides:

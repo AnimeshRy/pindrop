@@ -270,7 +270,15 @@ verify: ## Check that generated and formatted files are up to date
 	@git diff --exit-code || { echo "Formatting produced changes; commit them."; exit 1; }
 
 .PHONY: check
-check: lint test ## Run linters and tests
+check: lint test install-script-check ## Run linters and tests
+
+.PHONY: install-script-check
+install-script-check: ## Lint scripts/install.sh with shellcheck
+	@command -v shellcheck >/dev/null 2>&1 || { \
+	  echo "shellcheck not found; install it or run: apt install shellcheck"; \
+	  exit 1; \
+	}
+	shellcheck scripts/install.sh
 
 ##@ Run
 

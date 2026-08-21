@@ -41,7 +41,26 @@ Free scanners are one `brew install` away, and small teams still don't run them.
 
 ## Install
 
-### Homebrew (macOS / Linux)
+### Linux (Ubuntu / Debian)
+
+```bash
+curl -sfL https://raw.githubusercontent.com/AnimeshRy/pindrop/main/scripts/install.sh | sh
+```
+
+The script downloads the release for your platform, verifies it against `checksums.txt` from the same GitHub release, and installs into `~/.local/bin` (no sudo). Pin a version for CI:
+
+```bash
+curl -sfL https://raw.githubusercontent.com/AnimeshRy/pindrop/main/scripts/install.sh | sh -s -- -b ~/.local/bin v0.1.0
+```
+
+Ensure `~/.local/bin` is on your `PATH`, then download the scanners and scan:
+
+```bash
+pindrop setup
+pindrop scan .
+```
+
+### Homebrew (macOS / Linuxbrew)
 
 ```bash
 brew tap AnimeshRy/pindrop https://github.com/AnimeshRy/pindrop
@@ -167,7 +186,11 @@ Or commit a `.pindrop.json` next to the code. Config entries add to the built-in
 
 ### In CI
 
+Install a pinned release, then scan:
+
 ```bash
+curl -sfL https://raw.githubusercontent.com/AnimeshRy/pindrop/main/scripts/install.sh | sh -s -- -b ~/.local/bin v0.1.0
+export PATH="$HOME/.local/bin:$PATH"
 pindrop setup --yes
 pindrop scan . --format sarif --out results.sarif --fail-on high
 ```
