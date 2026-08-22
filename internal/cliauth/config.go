@@ -44,12 +44,12 @@ func LoadConfig() (Config, error) {
 
 	if cfg.SupabaseURL == "" {
 		return Config{}, fmt.Errorf(
-			"Supabase project URL is not configured — set %s or rebuild with release constants",
+			"supabase project URL is not configured — set %s or rebuild with release constants",
 			envSupabaseURL)
 	}
 	if cfg.SupabaseAnonKey == "" {
 		return Config{}, fmt.Errorf(
-			"Supabase anon key is not configured — set %s or rebuild with release constants",
+			"supabase anon key is not configured — set %s or rebuild with release constants",
 			envSupabaseAnonKey)
 	}
 	if cfg.APIBaseURL == "" {

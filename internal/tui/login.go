@@ -61,11 +61,11 @@ type loginDoneMsg struct{}
 
 // loginModel is the bubbletea model for browser OAuth progress.
 type loginModel struct {
-	stage   cliauth.LoginStage
-	detail  string
-	styles  styles
-	frame   int
-	quit    bool
+	stage    cliauth.LoginStage
+	detail   string
+	styles   styles
+	frame    int
+	quit     bool
 	provider string
 }
 
@@ -98,7 +98,7 @@ func (m loginModel) View() string {
 	fmt.Fprintf(&b, "\n  %s %s\n\n", m.styles.title.Render("Signing in"), m.styles.dim.Render("via "+m.providerLabel()))
 
 	mark, style, status := m.rowState()
-	b.WriteString(fmt.Sprintf("  %s %s\n\n", style.Render(mark), m.styles.name.Render(status)))
+	fmt.Fprintf(&b, "  %s %s\n\n", style.Render(mark), m.styles.name.Render(status))
 
 	if m.stage == cliauth.LoginStageManualURL {
 		b.WriteString(m.styles.dim.Render("  Open this URL in your browser to sign in:") + "\n")

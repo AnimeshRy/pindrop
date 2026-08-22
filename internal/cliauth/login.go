@@ -12,9 +12,10 @@ import (
 	"time"
 )
 
-// Provider names supported OAuth providers in Supabase GoTrue.
+// Provider names an OAuth provider supported by Supabase GoTrue.
 type Provider string
 
+// Supported OAuth providers.
 const (
 	ProviderGitHub Provider = "github"
 	ProviderGoogle Provider = "google"
@@ -176,7 +177,10 @@ func startCallbackServer(ctx context.Context) (port int, codeCh chan string, err
 	errCh = make(chan error, 1)
 
 	mux := http.NewServeMux()
-	srv := &http.Server{Handler: mux}
+	srv := &http.Server{
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
 
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
 		if errMsg := r.URL.Query().Get("error"); errMsg != "" {
@@ -252,7 +256,7 @@ func postToken(ctx context.Context, cfg Config, endpoint string, body []byte) (t
 		if msg == "" {
 			msg = string(raw)
 		}
-		return tokenResponse{}, fmt.Errorf("Supabase rejected login (%d): %s", resp.StatusCode, msg)
+		return tokenResponse{}, fmt.Errorf("supabase rejected login (%d): %s", resp.StatusCode, msg)
 	}
 
 	var tr tokenResponse
@@ -260,7 +264,7 @@ func postToken(ctx context.Context, cfg Config, endpoint string, body []byte) (t
 		return tokenResponse{}, fmt.Errorf("decoding token response: %w", err)
 	}
 	if tr.AccessToken == "" || tr.RefreshToken == "" {
-		return tokenResponse{}, fmt.Errorf("Supabase returned an incomplete session")
+		return tokenResponse{}, fmt.Errorf("supabase returned an incomplete session")
 	}
 	return tr, nil
 }

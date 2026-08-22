@@ -60,31 +60,9 @@ func runSync(ctx context.Context, g *globals, path string, all bool) error {
 	tui.PrintLine(opts, tui.SyncAsLine(styles, creds))
 	_, _ = fmt.Fprintln(os.Stderr)
 
-	token, _, err := cliauth.AccessToken(ctx)
+	client, err := newSyncClient(ctx, cfg)
 	if err != nil {
-		if errors.Is(err, cliauth.ErrNotLoggedIn) {
-			return fmt.Errorf("not logged in — run: pindrop login")
-		}
 		return err
-	}
-
-	client := syncclient.Client{
-		BaseURL: cfg.APIBaseURL,
-		Token:   token,
-		Refresh: func(ctx context.Context) (string, error) {
-			creds, loadErr := cliauth.Load()
-			if loadErr != nil {
-				return "", loadErr
-			}
-			session, refreshErr := cliauth.Refresh(ctx, creds)
-			if refreshErr != nil {
-				return "", refreshErr
-			}
-			if saveErr := cliauth.Save(session.Credentials); saveErr != nil {
-				return "", saveErr
-			}
-			return session.AccessToken, nil
-		},
 	}
 
 	store, err := openHistory()
@@ -124,6 +102,35 @@ func runSync(ctx context.Context, g *globals, path string, all bool) error {
 		return fmt.Errorf("%d repositor%s failed to sync", failed, repoPlural(failed))
 	}
 	return nil
+}
+
+func newSyncClient(ctx context.Context, cfg cliauth.Config) (syncclient.Client, error) {
+	token, _, err := cliauth.AccessToken(ctx)
+	if err != nil {
+		if errors.Is(err, cliauth.ErrNotLoggedIn) {
+			return syncclient.Client{}, fmt.Errorf("not logged in — run: pindrop login")
+		}
+		return syncclient.Client{}, err
+	}
+
+	return syncclient.Client{
+		BaseURL: cfg.APIBaseURL,
+		Token:   token,
+		Refresh: func(ctx context.Context) (string, error) {
+			creds, loadErr := cliauth.Load()
+			if loadErr != nil {
+				return "", loadErr
+			}
+			session, refreshErr := cliauth.Refresh(ctx, creds)
+			if refreshErr != nil {
+				return "", refreshErr
+			}
+			if saveErr := cliauth.Save(session.Credentials); saveErr != nil {
+				return "", saveErr
+			}
+			return session.AccessToken, nil
+		},
+	}, nil
 }
 
 func syncTargets(ctx context.Context, store history.Store, path string, all bool) ([]history.Repo, error) {

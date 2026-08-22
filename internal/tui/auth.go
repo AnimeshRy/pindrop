@@ -15,7 +15,7 @@ const (
 
 // OAuthProviderChoice holds the selected OAuth provider.
 type OAuthProviderChoice struct {
-	Provider string
+	Provider  string
 	Cancelled bool
 }
 

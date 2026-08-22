@@ -15,8 +15,8 @@ const syncStateSchema = 1
 
 // State tracks the last synced run per local repository.
 type State struct {
-	Schema      int                       `json:"schema"`
-	LastSynced  map[history.RepoID]string `json:"lastSyncedRun"`
+	Schema     int                       `json:"schema"`
+	LastSynced map[history.RepoID]string `json:"lastSyncedRun"`
 }
 
 // LoadState reads ~/.pindrop/sync-state.json.
@@ -35,7 +35,11 @@ func LoadState() (State, error) {
 	}
 
 	var st State
-	if err := json.Unmarshal(raw, &st); err != nil || st.Schema != syncStateSchema {
+	if err := json.Unmarshal(raw, &st); err != nil {
+		// Corrupt checkpoint — start fresh rather than blocking sync.
+		return State{Schema: syncStateSchema, LastSynced: map[history.RepoID]string{}}, nil //nolint:nilerr
+	}
+	if st.Schema != syncStateSchema {
 		return State{Schema: syncStateSchema, LastSynced: map[history.RepoID]string{}}, nil
 	}
 	if st.LastSynced == nil {

@@ -42,24 +42,10 @@ func (c *Client) do(ctx context.Context, method, path string, body any, out any)
 }
 
 func (c *Client) doRetry(ctx context.Context, method, path string, body any, out any, allowRefresh bool) error {
-	var reader io.Reader
-	if body != nil {
-		encoded, err := json.Marshal(body)
-		if err != nil {
-			return fmt.Errorf("encoding request: %w", err)
-		}
-		reader = bytes.NewReader(encoded)
-	}
-
-	url := strings.TrimRight(c.BaseURL, "/") + path
-	req, err := http.NewRequestWithContext(ctx, method, url, reader)
+	req, err := c.newRequest(ctx, method, path, body)
 	if err != nil {
 		return err
 	}
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	req.Header.Set("Authorization", "Bearer "+c.Token)
 
 	resp, err := c.httpClient().Do(req)
 	if err != nil {
@@ -76,6 +62,32 @@ func (c *Client) doRetry(ctx context.Context, method, path string, body any, out
 		return c.doRetry(ctx, method, path, body, out, false)
 	}
 
+	return readAPIResponse(resp, out)
+}
+
+func (c *Client) newRequest(ctx context.Context, method, path string, body any) (*http.Request, error) {
+	var reader io.Reader
+	if body != nil {
+		encoded, err := json.Marshal(body)
+		if err != nil {
+			return nil, fmt.Errorf("encoding request: %w", err)
+		}
+		reader = bytes.NewReader(encoded)
+	}
+
+	url := strings.TrimRight(c.BaseURL, "/") + path
+	req, err := http.NewRequestWithContext(ctx, method, url, reader)
+	if err != nil {
+		return nil, err
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	return req, nil
+}
+
+func readAPIResponse(resp *http.Response, out any) error {
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, maxBody))
 	if err != nil {
 		return fmt.Errorf("reading response: %w", err)
