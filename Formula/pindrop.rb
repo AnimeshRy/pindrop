@@ -5,21 +5,21 @@
 class Pindrop < Formula
   desc "Find, prioritize, and track security issues in your code"
   homepage "https://github.com/AnimeshRy/pindrop"
-  version "0.2.0"
+  version "0.2.1"
   license "Apache-2.0"
 
   on_macos do
     if Hardware::CPU.intel?
-      url "https://github.com/AnimeshRy/pindrop/releases/download/v0.2.0/pindrop_0.2.0_darwin_amd64.tar.gz"
-      sha256 "c21e9ff3a0de4346f0876e0fd9e4b3065057ee72748cfabb1ec5bc35025f69b4"
+      url "https://github.com/AnimeshRy/pindrop/releases/download/v0.2.1/pindrop_0.2.1_darwin_amd64.tar.gz"
+      sha256 "041b673ee03acb777d4ed720ae70a37cb0a5249efc1df370677d91afd3dd6ca2"
 
       define_method(:install) do
         bin.install "pindrop"
       end
     end
     if Hardware::CPU.arm?
-      url "https://github.com/AnimeshRy/pindrop/releases/download/v0.2.0/pindrop_0.2.0_darwin_arm64.tar.gz"
-      sha256 "19f401d4610cabde6fb1360bc56e3146d33b186395ba595a80f1fb29ba7196e7"
+      url "https://github.com/AnimeshRy/pindrop/releases/download/v0.2.1/pindrop_0.2.1_darwin_arm64.tar.gz"
+      sha256 "85bfa9e9627353e3acd37f323598bc7f0ab2aeaf0eacfa9d6d915522cd6a135e"
 
       define_method(:install) do
         bin.install "pindrop"
@@ -29,15 +29,15 @@ class Pindrop < Formula
 
   on_linux do
     if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
-      url "https://github.com/AnimeshRy/pindrop/releases/download/v0.2.0/pindrop_0.2.0_linux_amd64.tar.gz"
-      sha256 "0b152d6becbb25c03e73129984da6d08ef150e27966fc33b08d9b0b900e21c0b"
+      url "https://github.com/AnimeshRy/pindrop/releases/download/v0.2.1/pindrop_0.2.1_linux_amd64.tar.gz"
+      sha256 "d38f219b116f54fc59795ed2b1fc06fa9218d6895ca93ff56097938823b40faf"
       define_method(:install) do
         bin.install "pindrop"
       end
     end
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-      url "https://github.com/AnimeshRy/pindrop/releases/download/v0.2.0/pindrop_0.2.0_linux_arm64.tar.gz"
-      sha256 "e35986b5bdcbbc6497fe7eebba7a1f9c89d368fb9ee60a692c6c74d58523bae3"
+      url "https://github.com/AnimeshRy/pindrop/releases/download/v0.2.1/pindrop_0.2.1_linux_arm64.tar.gz"
+      sha256 "a95e3986185936a4942b12f85a2cbd01fba4633b2f46d9286391f73bb0772ec7"
       define_method(:install) do
         bin.install "pindrop"
       end
