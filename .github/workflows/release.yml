@@ -49,6 +49,6 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_URL: ${{ secrets.PINDROP_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.PINDROP_SUPABASE_ANON_KEY }}
           PINDROP_API_URL: ${{ secrets.PINDROP_API_URL }}
