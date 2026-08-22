@@ -8,6 +8,7 @@ import (
 
 func TestLoad_fromEnvironment(t *testing.T) {
 	t.Setenv("SUPABASE_PROJECT_URL", "https://abc.supabase.co")
+	t.Setenv("DATABASE_URL", "postgresql://localhost:5432/pindrop")
 	t.Setenv("PORT", "9090")
 	t.Setenv("CORS_ORIGIN", "http://localhost:3000")
 
@@ -25,10 +26,14 @@ func TestLoad_fromEnvironment(t *testing.T) {
 	if cfg.CORSOrigin != "http://localhost:3000" {
 		t.Fatalf("CORSOrigin = %q", cfg.CORSOrigin)
 	}
+	if cfg.DatabaseURL != "postgresql://localhost:5432/pindrop" {
+		t.Fatalf("DatabaseURL = %q", cfg.DatabaseURL)
+	}
 }
 
 func TestLoad_requiresSupabaseURL(t *testing.T) {
 	t.Setenv("SUPABASE_PROJECT_URL", "")
+	t.Setenv("DATABASE_URL", "postgresql://localhost:5432/pindrop")
 
 	_, err := config.Load()
 	if err == nil {
@@ -38,6 +43,7 @@ func TestLoad_requiresSupabaseURL(t *testing.T) {
 
 func TestLoad_stripsRestV1Suffix(t *testing.T) {
 	t.Setenv("SUPABASE_PROJECT_URL", "https://abc.supabase.co/rest/v1/")
+	t.Setenv("DATABASE_URL", "postgresql://localhost:5432/pindrop")
 
 	cfg, err := config.Load()
 	if err != nil {

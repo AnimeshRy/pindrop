@@ -40,7 +40,7 @@ type Middleware struct {
 	issuer string
 }
 
-// New builds middleware that verifies RS256 tokens from the given Supabase project.
+// New builds middleware that verifies Supabase JWTs (RS256 or ES256) from JWKS.
 func New(cfg Config) (*Middleware, error) {
 	projectURL := strings.TrimRight(strings.TrimSpace(cfg.ProjectURL), "/")
 	if projectURL == "" {
@@ -80,7 +80,7 @@ func (m *Middleware) Require(next http.Handler) http.Handler {
 }
 
 func (m *Middleware) verify(tokenString string) (User, error) {
-	token, err := jwt.Parse(tokenString, m.jwks.Keyfunc, jwt.WithValidMethods([]string{"RS256"}))
+	token, err := jwt.Parse(tokenString, m.jwks.Keyfunc, jwt.WithValidMethods([]string{"RS256", "ES256"}))
 	if err != nil {
 		return User{}, fmt.Errorf("invalid token: %w", err)
 	}

@@ -17,6 +17,8 @@ import (
 	"github.com/AnimeshRy/pindrop/server/internal/api"
 	"github.com/AnimeshRy/pindrop/server/internal/authmw"
 	"github.com/AnimeshRy/pindrop/server/internal/config"
+	"github.com/AnimeshRy/pindrop/server/internal/orgmw"
+	"github.com/AnimeshRy/pindrop/server/internal/syncstore/postgres"
 )
 
 func main() {
@@ -37,7 +39,15 @@ func run() error {
 		return err
 	}
 
-	srv := api.New(api.Config{Auth: auth})
+	store, err := postgres.Open(context.Background(), cfg.DatabaseURL)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+
+	org := orgmw.New(store)
+
+	srv := api.New(api.Config{Auth: auth, Org: org, Store: store})
 	handler := srv.Handler(cfg.CORSOrigin)
 
 	httpServer := &http.Server{

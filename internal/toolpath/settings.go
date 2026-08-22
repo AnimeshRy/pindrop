@@ -131,3 +131,56 @@ func DefaultHome() (string, error) {
 	}
 	return filepath.Join(home, dirName), nil
 }
+
+const (
+	credentialsFileName = "credentials.json"
+	syncStateFileName   = "sync-state.json"
+)
+
+// CredentialsPath returns ~/.pindrop/credentials.json for CLI auth tokens.
+func CredentialsPath() (string, error) {
+	home, err := Home()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, credentialsFileName), nil
+}
+
+// SyncStatePath returns ~/.pindrop/sync-state.json for sync checkpoints.
+func SyncStatePath() (string, error) {
+	home, err := Home()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, syncStateFileName), nil
+}
+
+// WritePrivateFile writes data to path atomically with mode 0600.
+func WritePrivateFile(path string, data []byte) error {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return fmt.Errorf("creating %s: %w", dir, err)
+	}
+
+	tmp, err := os.CreateTemp(dir, filepath.Base(path)+".*")
+	if err != nil {
+		return fmt.Errorf("creating a temporary file: %w", err)
+	}
+	tmpPath := tmp.Name()
+	defer func() { _ = os.Remove(tmpPath) }()
+
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return fmt.Errorf("writing %s: %w", path, err)
+	}
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("writing %s: %w", path, err)
+	}
+	if err := os.Chmod(tmpPath, 0o600); err != nil {
+		return fmt.Errorf("setting permissions on %s: %w", path, err)
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		return fmt.Errorf("saving %s: %w", path, err)
+	}
+	return nil
+}

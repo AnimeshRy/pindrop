@@ -223,6 +223,10 @@ dev: ## Run the frontend dev server against a locally running API
 app-dev: ## Run the product app dev server (port 5174)
 	$(APP_PNPM) dev
 
+.PHONY: server-sqlc
+server-sqlc: ## Regenerate sqlc code for the SaaS Postgres store
+	cd server/internal/syncstore/postgres && sqlc generate
+
 .PHONY: server-test
 server-test: ## Run product API tests
 	cd server && $(GO) test ./...

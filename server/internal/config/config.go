@@ -18,6 +18,7 @@ import (
 type Config struct {
 	Port               string `env:"PORT" envDefault:"8080"`
 	SupabaseProjectURL string `env:"SUPABASE_PROJECT_URL,notEmpty"`
+	DatabaseURL        string `env:"DATABASE_URL,notEmpty"`
 	CORSOrigin         string `env:"CORS_ORIGIN" envDefault:"http://localhost:5174"`
 }
 

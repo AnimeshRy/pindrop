@@ -31,6 +31,9 @@ builds:
     ldflags:
       - -s -w
       - -X github.com/AnimeshRy/pindrop/internal/buildinfo.version={{.Version}}
+      - -X github.com/AnimeshRy/pindrop/internal/cliauth.supabaseURL={{ .Env.SUPABASE_URL }}
+      - -X github.com/AnimeshRy/pindrop/internal/cliauth.supabaseAnonKey={{ .Env.SUPABASE_ANON_KEY }}
+      - -X github.com/AnimeshRy/pindrop/internal/cliauth.apiBaseURL={{ .Env.PINDROP_API_URL }}
 
 archives:
   - format: tar.gz

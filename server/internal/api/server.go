@@ -7,11 +7,15 @@ import (
 	"strings"
 
 	"github.com/AnimeshRy/pindrop/server/internal/authmw"
+	"github.com/AnimeshRy/pindrop/server/internal/orgmw"
+	"github.com/AnimeshRy/pindrop/server/internal/syncstore"
 )
 
 // Config wires the API handlers.
 type Config struct {
-	Auth *authmw.Middleware
+	Auth  *authmw.Middleware
+	Org   *orgmw.Middleware
+	Store syncstore.Store
 }
 
 // Server registers product API routes on an [http.ServeMux].
@@ -35,6 +39,9 @@ func (s *Server) routes(cfg Config) {
 	s.mux.HandleFunc("GET /api/v1/healthz", handleHealth)
 	if cfg.Auth != nil {
 		s.mux.Handle("GET /api/v1/me", cfg.Auth.Require(http.HandlerFunc(handleMe)))
+	}
+	if cfg.Store != nil && cfg.Org != nil && cfg.Auth != nil {
+		SyncHandlers{Store: cfg.Store}.register(s.mux, cfg.Auth, cfg.Org)
 	}
 }
 
@@ -74,7 +81,7 @@ func cors(origin string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, PUT, OPTIONS")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return
