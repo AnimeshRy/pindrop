@@ -23,7 +23,21 @@ type Store struct {
 
 // Open connects to Postgres, runs migrations, and returns a Store.
 func Open(ctx context.Context, databaseURL string) (*Store, error) {
-	pool, err := pgxpool.New(ctx, databaseURL)
+	poolCfg, err := pgxpool.ParseConfig(databaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("parsing database url: %w", err)
+	}
+	// Supabase's pooler is PgBouncer in transaction mode, which cannot carry
+	// pgx's default server-side prepared statements across a pooled connection.
+	// DescribeExec uses the unnamed statement instead, so nothing is cached
+	// server-side. It is the weakest mode that still works: Exec and
+	// SimpleProtocol drop the Describe round trip too, and without the param
+	// OIDs it returns pgx encodes the jsonb columns (repo_links.metadata,
+	// former_paths, typed []byte by sqlc) as bytea, which Postgres rejects with
+	// "invalid input syntax for type json". TestPutRunFindingsAndStates covers it.
+	poolCfg.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeDescribeExec
+
+	pool, err := pgxpool.NewWithConfig(ctx, poolCfg)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to database: %w", err)
 	}

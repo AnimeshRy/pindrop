@@ -116,3 +116,104 @@ make server-test
 ```
 
 Store integration tests use testcontainers and require Docker.
+
+## Deploying to Cloud Run
+
+The API is a long-running process with a pgx pool and startup migrations, so it
+runs as a container, not a serverless function. `Dockerfile` is the deploy
+artifact and Cloud Build builds it from source, so no local Docker is needed.
+
+### Console setup (no gcloud required)
+
+**1. Store the database URL as a secret.** Secret Manager → *Create secret*,
+name `pindrop-database-url`, value the Supabase **transaction pooler** string
+with a pool cap appended:
+
+```
+postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres?sslmode=require&pool_max_conns=5
+```
+
+**2. Create the service.** Cloud Run → *Create service* → *Continuously deploy
+from a repository* → connect the GitHub repo, then set:
+
+| Field | Value |
+|---|---|
+| Branch | `^main$` |
+| Build type | Dockerfile |
+| Dockerfile path | `/server/Dockerfile` |
+
+There is no build-context setting in this UI, and there is nothing to set: Cloud
+Build always uses the repository root. `server/Dockerfile` is written for that
+context — every `COPY` is prefixed `server/` — which is the whole reason it does
+not simply `COPY go.mod go.sum ./`. Changing those paths back to expect
+`server/` as the context makes the service undeployable from the console.
+
+**3. Service settings.**
+
+| Setting | Value |
+|---|---|
+| Authentication | Allow unauthenticated invocations |
+| Min instances | 0 |
+| Max instances | 3 |
+| Memory / CPU | 512 MiB / 1 |
+| Request timeout | 60s |
+
+"Allow unauthenticated" is correct and not a hole: every route except
+`/api/v1/healthz` requires a Supabase JWT, verified by `internal/authmw`. IAM
+auth would instead block the CLI and browser, which hold user tokens, not
+Google credentials.
+
+**4. Environment variables.**
+
+| Variable | Value |
+|---|---|
+| `SUPABASE_PROJECT_URL` | `https://<ref>.supabase.co` |
+| `CORS_ORIGIN` | the deployed frontend origin, e.g. `https://pindrop.nimesh.ink` |
+| `DATABASE_URL` | *reference the secret* `pindrop-database-url`, exposed as an env var |
+
+Do **not** set `PORT` — Cloud Run injects it, and a hardcoded value makes the
+container fail its health check.
+
+### Things that will bite you
+
+**Use Supabase's pooler, never the direct connection.** Cloud Run egress is IPv4
+and Supabase's direct Postgres endpoint is IPv6-only, so a direct URL fails to
+connect at all. The pooler (`...pooler.supabase.com`) is IPv4.
+
+**The pooler is why `Open` forces `QueryExecModeDescribeExec`.** Supabase's
+transaction pooler is PgBouncer, which cannot carry pgx's default server-side
+prepared statements across a pooled connection. Reverting that line breaks every
+query in production while leaving local development against a direct Postgres
+green. Do not "simplify" it further to `Exec` or `SimpleProtocol` either: both
+drop the Describe round trip, and without the parameter OIDs it returns, pgx
+encodes the jsonb columns as bytea and every repo sync fails with `invalid input
+syntax for type json`.
+
+**Cap the pool in the connection string** — `pool_max_conns=5`. The default is
+one connection per CPU multiplied by every Cloud Run instance, which exhausts
+the pooler's client limit long before the service is under real load.
+
+**`DATABASE_URL` holds a password**, so it belongs in Secret Manager, not in a
+plain environment variable where it is readable from the service description.
+
+### Custom domain
+
+The generated `run.app` URL is stable across revisions, but it encodes the
+project and region, and the CLI bakes its API URL into released binaries at link
+time (`internal/cliauth`, `-ldflags -X`). Shipped binaries cannot be corrected
+remotely, so map a domain before setting that default and never point it at
+`run.app`.
+
+Cloud Run → *Manage custom domains* → add e.g. `api.pindrop.nimesh.ink`, then
+create the CNAME it gives you. If the domain is on Cloudflare, that record must
+be **DNS-only (grey cloud)**: Cloud Run routes by `Host` header, and a proxied
+request arrives with the custom hostname, which an unmapped service answers with
+a bare 404 that looks like the app is broken.
+
+### After the service is up
+
+1. Set the frontend's `VITE_API_BASE_URL` to the API origin and redeploy it.
+2. Set `CORS_ORIGIN` to the frontend origin — the two are mutually referential,
+   so one of them is always a second pass.
+3. Point the CLI at it via `PINDROP_API_URL`, and only once the domain is final,
+   as the `-ldflags` default.
