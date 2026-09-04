@@ -142,11 +142,12 @@ from a repository* → connect the GitHub repo, then set:
 | Build type | Dockerfile |
 | Dockerfile path | `/server/Dockerfile` |
 
-There is no build-context setting in this UI, and there is nothing to set: Cloud
-Build always uses the repository root. `server/Dockerfile` is written for that
-context — every `COPY` is prefixed `server/` — which is the whole reason it does
-not simply `COPY go.mod go.sum ./`. Changing those paths back to expect
-`server/` as the context makes the service undeployable from the console.
+The UI shows no build-context field, but it derives one from the Dockerfile
+path: the generated trigger's build step is `docker build ... server -f
+server/Dockerfile`, so the context is `server/`. That is why `Dockerfile` uses
+plain `COPY go.mod go.sum ./` and `server/.dockerignore` sits beside it. The
+context is invisible in the UI and only appears in the trigger's build step, so
+check there before changing any `COPY` path.
 
 **3. Service settings.**
 
@@ -195,6 +196,24 @@ the pooler's client limit long before the service is under real load.
 
 **`DATABASE_URL` holds a password**, so it belongs in Secret Manager, not in a
 plain environment variable where it is readable from the service description.
+
+### If the build fails at FETCHSOURCE
+
+```
+error fetching DeveloperConnect credentials: ... Permission
+'developerconnect.gitRepositoryLinks.fetchReadToken' denied
+```
+
+This is IAM, not the build: Cloud Build cannot read the GitHub link, so it never
+reaches the Dockerfile. Grant the build's service account (the Compute Engine
+default, `<project-number>-compute@developer.gserviceaccount.com`, unless the
+trigger names another) the **Developer Connect Read Token Accessor** role
+(`roles/developerconnect.readTokenAccessor`) in IAM.
+
+Note the Developer Connect connection is created in the *trigger's* region,
+which the console may place somewhere other than the service's region — the
+error message carries the connection's real location, and it is the one that
+matters when granting at connection scope rather than project scope.
 
 ### Custom domain
 

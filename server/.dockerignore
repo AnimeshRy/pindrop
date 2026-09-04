@@ -1,0 +1,10 @@
+# The build context is server/ (see Dockerfile), so these paths are relative to
+# it, not the repo root.
+Dockerfile
+.env
+.env.local
+*.db
+*.out
+*.test
+coverage.out
+*.prof
