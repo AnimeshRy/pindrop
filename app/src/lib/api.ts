@@ -214,6 +214,13 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Origin of the product API. Empty in development, where Vite proxies /api to
+ * the local Go server; set on a deployed frontend, which has no proxy and must
+ * call the API's own origin.
+ */
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '')
+
 /** Authenticated fetch against the product API. */
 export async function apiFetch<T>(
   path: string,
@@ -226,7 +233,7 @@ export async function apiFetch<T>(
     headers.set('Content-Type', 'application/json')
   }
 
-  const res = await fetch(path, { ...init, headers })
+  const res = await fetch(`${apiBaseUrl}${path}`, { ...init, headers })
   if (!res.ok) {
     let message = res.statusText
     try {
