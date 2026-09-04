@@ -197,6 +197,21 @@ the pooler's client limit long before the service is under real load.
 **`DATABASE_URL` holds a password**, so it belongs in Secret Manager, not in a
 plain environment variable where it is readable from the service description.
 
+### The trigger builds without BuildKit
+
+Cloud Run's generated trigger runs `gcr.io/cloud-builders/docker` with the
+legacy builder, so `Dockerfile` must stay compatible with it. Two consequences,
+both of which have already broken a deploy here:
+
+- `RUN --mount=type=cache` fails outright with *"the --mount option requires
+  BuildKit"*. Layer caching comes from the trigger's `--cache-from` instead.
+- `TARGETOS` and `TARGETARCH` are BuildKit-provided and expand to empty strings,
+  so they carry explicit `linux`/`amd64` defaults.
+
+Reproduce the trigger's environment locally with `DOCKER_BUILDKIT=0 docker build
+-t pindrop-server server/` — a plain `docker build` uses BuildKit and will
+happily accept a Dockerfile the trigger rejects.
+
 ### If the build fails at FETCHSOURCE
 
 ```
