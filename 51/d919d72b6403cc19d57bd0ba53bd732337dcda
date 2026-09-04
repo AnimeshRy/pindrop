@@ -1,0 +1,39 @@
+server/Dockerfile
+  s_ec3d3bd8d62c6e::t_afe82283cf46c7 8-13,15,32,35
+  s_ec3d3bd8d62c6e::t_ebfc6ba94f3b20 43-50,54,56
+server/.dockerignore
+  s_82cde042321a4e::t_179a1448f7be6a 3-4,6
+  s_ec3d3bd8d62c6e::t_afe82283cf46c7 1-2,5,7-10
+server/README.md
+  s_ec3d3bd8d62c6e::t_df27e6be0f09a9 200-217
+  s_ec3d3bd8d62c6e::t_abddfac27cbbd0 145-150
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "51d919d72b6403cc19d57bd0ba53bd732337dcda",
+  "prompts": {},
+  "humans": {
+    "h_829f9361b81559": {
+      "author": "AnimeshRy <ani16september@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_82cde042321a4e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bfc8e973-5551-461f-ada2-f1f47a231d3e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "AnimeshRy <ani16september@gmail.com>"
+    },
+    "s_ec3d3bd8d62c6e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0f4e3917-388c-4db7-b6c4-2c02c3862612",
+        "model": "claude-opus-5"
+      },
+      "human_author": "AnimeshRy <ani16september@gmail.com>"
+    }
+  }
+}
